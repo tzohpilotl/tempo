@@ -1,0 +1,33 @@
+import { User } from '../entities/user.entity';
+import { Project } from '../entities/project.entity';
+import { TrackingEvent } from '../entities/tracking-event.entity';
+
+// ── User Repository ──────────────────────────────────────────────────────────
+
+export interface IUserRepository {
+  findByGoogleId(googleId: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+  findById(userId: string): Promise<User | null>;
+  create(data: Pick<User, 'email' | 'google_id' | 'display_name'>): Promise<User>;
+}
+
+// ── Project Repository ───────────────────────────────────────────────────────
+
+export interface IProjectRepository {
+  findAllByUser(userId: string): Promise<Project[]>;
+  findByNameAndUser(name: string, userId: string): Promise<Project | null>;
+  findById(projectId: string): Promise<Project | null>;
+  create(data: Pick<Project, 'name' | 'user_id'>): Promise<Project>;
+}
+
+// ── Tracking Event Repository ────────────────────────────────────────────────
+
+export interface ITrackingEventRepository {
+  findAllByUser(userId: string): Promise<TrackingEvent[]>;
+  create(data: {
+    started_at: Date;
+    stopped_at: Date;
+    task_description?: string | null;
+    project_id?: string | null;
+  }): Promise<TrackingEvent>;
+}
