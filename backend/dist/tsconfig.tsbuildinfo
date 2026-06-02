@@ -1,0 +1,22 @@
+{
+  "fileNames": [],
+  "fileInfos": [],
+  "root": [],
+  "options": {
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "module": 1,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "outDir": "./",
+    "removeComments": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strictBindCallApply": true,
+    "strictNullChecks": true,
+    "target": 8
+  },
+  "version": "5.9.3"
+}
