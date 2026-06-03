@@ -12,9 +12,12 @@ import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { AuthenticatedGuard } from './guards/authenticated.guard';
 import { CurrentUser } from '../common/current-user.decorator';
 import { User } from '../database/entities/user.entity';
+import { ProjectsService } from '../projects/projects.service';
 
 @Controller('auth')
 export class AuthController {
+  constructor(private readonly projectsService: ProjectsService) {}
+
   /**
    * GET /api/auth/google
    * Redirects the browser to Google's OAuth consent screen.
@@ -34,11 +37,12 @@ export class AuthController {
    */
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  googleCallback(@Req() req: Request, @Res() res: Response): void {
-    // At this point req.user is populated and the session cookie has been set.
-    // Redirect to onboarding; the frontend will decide where to send the user.
+  async googleCallback(@Req() req: Request, @Res() res: Response): Promise<void> {
+    const user = req.user as User;
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/onboarding`);
+    const projects = await this.projectsService.findAllForUser(user.user_id);
+    const destination = projects.length > 0 ? '/dashboard' : '/onboarding';
+    res.redirect(`${frontendUrl}${destination}`);
   }
 
   /**

@@ -7,16 +7,16 @@ import { GoogleStrategy } from './google.strategy';
 import { SessionSerializer } from './session.serializer';
 import { User } from '../database/entities/user.entity';
 import { UserRepository } from '../database/repositories/user.repository';
+import { ProjectsModule } from '../projects/projects.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
-    // defaultStrategy tells Passport which guard to use when none is specified
     PassportModule.register({ defaultStrategy: 'google', session: true }),
+    ProjectsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, GoogleStrategy, SessionSerializer, UserRepository],
-  // UserRepository exported so other modules can use it if needed
   exports: [AuthService, UserRepository],
 })
 export class AuthModule {}
