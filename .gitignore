@@ -1,6 +1,7 @@
 node_modules
 dist
 .env
+*.sqlite
 phase_1
 phase_2
 phase_3
