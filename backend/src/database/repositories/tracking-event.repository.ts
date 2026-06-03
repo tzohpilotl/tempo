@@ -47,6 +47,10 @@ export class TrackingEventRepository implements ITrackingEventRepository {
       task_description: data.task_description ?? null,
       project_id: data.project_id ?? null,
     });
-    return this.orm.save(event);
+    const saved = await this.orm.save(event);
+    return this.orm.findOneOrFail({
+      where: { tracking_event_id: saved.tracking_event_id },
+      relations: { project: true },
+    });
   }
 }
