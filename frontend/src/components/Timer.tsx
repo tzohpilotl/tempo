@@ -3,6 +3,8 @@ import { tracking, projects as projectsApi } from '../api/client';
 import type { Project, TrackingEvent } from '../types';
 import styles from './Timer.module.css';
 
+const ucFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 interface Props {
   projects: Project[];
   onEventLogged: (event: TrackingEvent) => void;
@@ -130,7 +132,7 @@ export default function Timer({ projects, onEventLogged, onProjectCreated }: Pro
                 <option value="">No project</option>
                 {projects.map((p) => (
                   <option key={p.project_id} value={p.project_id}>
-                    {p.name}
+                    {ucFirst(p.name)}
                   </option>
                 ))}
               </select>

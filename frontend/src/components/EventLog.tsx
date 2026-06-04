@@ -16,6 +16,8 @@ function formatDuration(seconds: number): string {
   return `${s}s`;
 }
 
+const ucFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
   const now = new Date();
@@ -62,14 +64,14 @@ export default function EventLog({ events, loading }: Props) {
           >
             <div className={styles.itemLeft}>
               {event.task_description ? (
-                <span className={styles.taskDesc}>{event.task_description}</span>
+                <span className={styles.taskDesc}>{ucFirst(event.task_description)}</span>
               ) : (
                 <span className={styles.taskDescEmpty}>Untitled session</span>
               )}
               <div className={styles.meta}>
                 {event.project && (
                   <>
-                    <span className={styles.projectTag}>{event.project.name}</span>
+                    <span className={styles.projectTag}>{ucFirst(event.project.name)}</span>
                     <span className={styles.metaDot}>·</span>
                   </>
                 )}
