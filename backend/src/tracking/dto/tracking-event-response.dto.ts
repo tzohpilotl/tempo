@@ -18,6 +18,17 @@ export interface TrackingEventResponse {
  * Converts a TrackingEvent entity into the API response shape.
  * Computes duration_seconds so the frontend never has to do date math.
  */
+export interface ProjectTimeSummaryItem {
+  project_id: string | null;
+  name: string | null;
+  total_seconds: number;
+}
+
+export interface TrackingTimeSummary {
+  breakdown: ProjectTimeSummaryItem[];
+  total_seconds: number;
+}
+
 export interface TrackingEventsPage {
   data: TrackingEventResponse[];
   total: number;

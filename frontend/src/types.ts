@@ -21,6 +21,17 @@ export interface TrackingEvent {
   project: { project_id: string; name: string } | null;
 }
 
+export interface ProjectTimeSummaryItem {
+  project_id: string | null;
+  name: string | null;
+  total_seconds: number;
+}
+
+export interface TrackingTimeSummary {
+  breakdown: ProjectTimeSummaryItem[];
+  total_seconds: number;
+}
+
 export interface TrackingEventsPage {
   data: TrackingEvent[];
   total: number;

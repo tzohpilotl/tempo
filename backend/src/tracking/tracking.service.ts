@@ -7,6 +7,7 @@ import { TrackingEventRepository } from '../database/repositories/tracking-event
 import { ProjectRepository } from '../database/repositories/project.repository';
 import { TrackingEvent } from '../database/entities/tracking-event.entity';
 import { CreateTrackingEventDto } from './dto/create-tracking-event.dto';
+import { TrackingTimeSummary } from './dto/tracking-event-response.dto';
 
 @Injectable()
 export class TrackingService {
@@ -21,6 +22,19 @@ export class TrackingService {
    */
   async findAllForUser(userId: string): Promise<TrackingEvent[]> {
     return this.events.findAllByUser(userId);
+  }
+
+  async getSummaryForUser(userId: string): Promise<TrackingTimeSummary> {
+    const rows = await this.events.getSummaryByProject(userId);
+    const total_seconds = rows.reduce((sum, r) => sum + Number(r.total_seconds), 0);
+    return {
+      breakdown: rows.map((r) => ({
+        project_id: r.project_id ?? null,
+        name: r.name ?? null,
+        total_seconds: Number(r.total_seconds),
+      })),
+      total_seconds,
+    };
   }
 
   async findPaginated(

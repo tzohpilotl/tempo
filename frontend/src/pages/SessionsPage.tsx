@@ -4,35 +4,48 @@ import { projects as projectsApi, tracking as trackingApi } from '../api/client'
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from '../components/Sidebar';
 import EventLog from '../components/EventLog';
-import type { Project, TrackingEvent } from '../types';
+import PieChart from '../components/PieChart';
+import type { Project, TrackingEvent, TrackingTimeSummary } from '../types';
 import styles from './SessionsPage.module.css';
 
 const PAGE_SIZE = 20;
+
+const EMPTY_SUMMARY: TrackingTimeSummary = { breakdown: [], total_seconds: 0 };
 
 export default function SessionsPage() {
   const { user, loading: authLoading, unauthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [projects, setProjects] = useState<Project[]>([]);
+  const [summary, setSummary] = useState<TrackingTimeSummary>(EMPTY_SUMMARY);
   const [events, setEvents] = useState<TrackingEvent[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [projectFilter, setProjectFilter] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(true);
+  const [eventsOpen, setEventsOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && unauthenticated) navigate('/login', { replace: true });
   }, [unauthenticated, authLoading, navigate]);
 
+  // Load projects and summary (once on mount)
   useEffect(() => {
     if (!user) return;
     projectsApi.list().then(setProjects).catch(console.error);
+    trackingApi
+      .summary()
+      .then(setSummary)
+      .catch(console.error)
+      .finally(() => setChartLoading(false));
   }, [user]);
 
+  // Load paginated events (re-runs on page/filter change)
   useEffect(() => {
     if (!user) return;
-    setLoading(true);
+    setListLoading(true);
     trackingApi
       .list({ page, pageSize: PAGE_SIZE, projectId: projectFilter || undefined })
       .then((result) => {
@@ -41,7 +54,7 @@ export default function SessionsPage() {
         setTotal(result.total);
       })
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => setListLoading(false));
   }, [user, page, projectFilter]);
 
   if (authLoading || !user) return null;
@@ -57,78 +70,111 @@ export default function SessionsPage() {
 
       <main className={styles.main}>
         <header className={styles.header}>
-          <div className={styles.titleRow}>
-            <h1 className={styles.title}>Sessions</h1>
-            <span className={styles.totalBadge}>{total} total</span>
-          </div>
-
-          <div className={styles.filters}>
-            <label htmlFor="project-filter" className={styles.filterLabel}>
-              Project
-            </label>
-            <select
-              id="project-filter"
-              className={styles.filterSelect}
-              value={projectFilter}
-              onChange={(e) => handleFilterChange(e.target.value)}
-            >
-              <option value="">All projects</option>
-              {projects.map((p) => (
-                <option key={p.project_id} value={p.project_id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <h1 className={styles.title}>Sessions</h1>
         </header>
 
-        <div className={styles.list}>
-          <EventLog events={events} loading={loading} />
-        </div>
+        {/* ── Pie chart — main focus of the page ── */}
+        <section className={styles.chartSection}>
+          {chartLoading ? (
+            <div className={styles.chartPlaceholder} />
+          ) : (
+            <PieChart summary={summary} />
+          )}
+        </section>
 
-        {!loading && totalPages > 1 && (
-          <nav className={styles.pagination} aria-label="Pagination">
-            <button
-              className={styles.pageBtn}
-              onClick={() => setPage((p) => p - 1)}
-              disabled={page <= 1}
-            >
-              ← Prev
-            </button>
-
-            <div className={styles.pageNumbers}>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
-                .reduce<(number | 'gap')[]>((acc, n, i, arr) => {
-                  if (i > 0 && n - (arr[i - 1] as number) > 1) acc.push('gap');
-                  acc.push(n);
-                  return acc;
-                }, [])
-                .map((item, i) =>
-                  item === 'gap' ? (
-                    <span key={`gap-${i}`} className={styles.pageGap}>…</span>
-                  ) : (
-                    <button
-                      key={item}
-                      className={`${styles.pageNum} ${item === page ? styles.activePage : ''}`}
-                      onClick={() => setPage(item as number)}
-                      disabled={item === page}
-                    >
-                      {item}
-                    </button>
-                  )
-                )}
+        {/* ── Foldable events list ── */}
+        <section className={styles.eventsDrawer}>
+          <button
+            className={styles.eventsToggle}
+            onClick={() => setEventsOpen((o) => !o)}
+            aria-expanded={eventsOpen}
+          >
+            <div className={styles.toggleLeft}>
+              <span className={`${styles.chevron} ${eventsOpen ? styles.chevronOpen : ''}`}>
+                ▸
+              </span>
+              <span className={styles.toggleLabel}>{total} sessions</span>
             </div>
 
-            <button
-              className={styles.pageBtn}
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page >= totalPages}
-            >
-              Next →
-            </button>
-          </nav>
-        )}
+            {/* Project filter lives in the toggle row so it's always visible */}
+            <div className={styles.filters} onClick={(e) => e.stopPropagation()}>
+              <label htmlFor="project-filter" className={styles.filterLabel}>
+                Project
+              </label>
+              <select
+                id="project-filter"
+                className={styles.filterSelect}
+                value={projectFilter}
+                onChange={(e) => handleFilterChange(e.target.value)}
+              >
+                <option value="">All</option>
+                {projects.map((p) => (
+                  <option key={p.project_id} value={p.project_id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </button>
+
+          {eventsOpen && (
+            <div className={styles.eventsContent}>
+              <EventLog events={events} loading={listLoading} />
+
+              {!listLoading && totalPages > 1 && (
+                <nav className={styles.pagination} aria-label="Pagination">
+                  <button
+                    className={styles.pageBtn}
+                    onClick={() => setPage((p) => p - 1)}
+                    disabled={page <= 1}
+                  >
+                    ← Prev
+                  </button>
+
+                  <div className={styles.pageNumbers}>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(
+                        (n) =>
+                          n === 1 ||
+                          n === totalPages ||
+                          Math.abs(n - page) <= 1,
+                      )
+                      .reduce<(number | 'gap')[]>((acc, n, i, arr) => {
+                        if (i > 0 && n - (arr[i - 1] as number) > 1)
+                          acc.push('gap');
+                        acc.push(n);
+                        return acc;
+                      }, [])
+                      .map((item, i) =>
+                        item === 'gap' ? (
+                          <span key={`gap-${i}`} className={styles.pageGap}>
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={item}
+                            className={`${styles.pageNum} ${item === page ? styles.activePage : ''}`}
+                            onClick={() => setPage(item as number)}
+                            disabled={item === page}
+                          >
+                            {item}
+                          </button>
+                        ),
+                      )}
+                  </div>
+
+                  <button
+                    className={styles.pageBtn}
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={page >= totalPages}
+                  >
+                    Next →
+                  </button>
+                </nav>
+              )}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );

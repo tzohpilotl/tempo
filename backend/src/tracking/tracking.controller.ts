@@ -13,6 +13,7 @@ import { CreateTrackingEventDto } from './dto/create-tracking-event.dto';
 import {
   TrackingEventsPage,
   TrackingEventResponse,
+  TrackingTimeSummary,
   toTrackingEventResponse,
 } from './dto/tracking-event-response.dto';
 import { AuthenticatedGuard } from '../auth/guards/authenticated.guard';
@@ -23,6 +24,12 @@ import { User } from '../database/entities/user.entity';
 @UseGuards(AuthenticatedGuard)
 export class TrackingController {
   constructor(private readonly trackingService: TrackingService) {}
+
+  /** GET /api/tracking/summary — total time grouped by project for the logged-in user. */
+  @Get('summary')
+  getSummary(@CurrentUser() user: User): Promise<TrackingTimeSummary> {
+    return this.trackingService.getSummaryForUser(user.user_id);
+  }
 
   /**
    * GET /api/tracking?page=1&pageSize=20&projectId=<uuid>

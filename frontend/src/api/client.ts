@@ -1,4 +1,4 @@
-import type { User, Project, TrackingEvent, TrackingEventsPage } from "../types";
+import type { User, Project, TrackingEvent, TrackingEventsPage, TrackingTimeSummary } from "../types";
 
 const BASE = "/api";
 
@@ -66,6 +66,8 @@ export const tracking = {
     const query = qs.toString();
     return request<TrackingEventsPage>(`/tracking${query ? "?" + query : ""}`);
   },
+
+  summary: () => request<TrackingTimeSummary>("/tracking/summary"),
 
   log: (payload: {
     started_at: string;

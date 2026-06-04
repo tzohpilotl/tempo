@@ -35,6 +35,24 @@ export class TrackingEventRepository implements ITrackingEventRepository {
       .getMany();
   }
 
+  async getSummaryByProject(
+    userId: string,
+  ): Promise<Array<{ project_id: string | null; name: string | null; total_seconds: number }>> {
+    return this.orm
+      .createQueryBuilder('event')
+      .leftJoin('event.project', 'project')
+      .select('event.project_id', 'project_id')
+      .addSelect('project.name', 'name')
+      .addSelect(
+        `CAST(SUM((julianday(event.stopped_at) - julianday(event.started_at)) * 86400) AS INTEGER)`,
+        'total_seconds',
+      )
+      .where('(project.user_id = :userId OR event.project_id IS NULL)', { userId })
+      .groupBy('event.project_id')
+      .orderBy('total_seconds', 'DESC')
+      .getRawMany();
+  }
+
   async findPaginated(
     userId: string,
     page: number,
