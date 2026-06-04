@@ -20,6 +20,9 @@
   --success:     #3fb950;
   --danger:      #f85149;
 
+  /* Text colour on top of --accent backgrounds (default: dark on amber) */
+  --btn-accent-fg: #000;
+
   /* Typography */
   --font-sans:  'DM Sans',  sans-serif;
   --font-mono:  'DM Mono',  monospace;
@@ -72,6 +75,80 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* ── TUI Theme — warm parchment monochrome ─────────────────────────────────── */
+:root[data-theme="tui"] {
+  /* Warm cream palette — aged paper / early Mac */
+  --bg:          #ebe6d9;
+  --bg-surface:  #dedad0;
+  --bg-raised:   #d2cec4;
+  --border:      #1c180e;
+  --border-soft: #6a6660;
+
+  --text:        #1c180e;
+  --text-muted:  #4c4840;
+  --text-faint:  #908c86;
+
+  /* Monochromatic: near-black is the single "accent" hue */
+  --accent:      #1c180e;
+  --accent-dim:  rgba(28, 24, 14, 0.12);
+  --accent-glow: rgba(28, 24, 14, 0.22);
+
+  --success:     #1a401e;
+  --danger:      #7a1818;
+
+  /* Text that sits on top of an --accent background (inverted) */
+  --btn-accent-fg: #ebe6d9;
+
+  --font-sans:   'DM Mono', 'Courier New', monospace;
+  --font-mono:   'DM Mono', 'Courier New', monospace;
+
+  --radius:    0px;
+  --radius-lg: 0px;
+  --ease:      linear;
+}
+
+/* Flatten every rounded corner, including hardcoded pill shapes */
+[data-theme="tui"] *,
+[data-theme="tui"] *::before,
+[data-theme="tui"] *::after {
+  border-radius: 0 !important;
+}
+
+/* Subtle dot-grid texture — graph paper / old raster display feel */
+[data-theme="tui"] body {
+  text-shadow: none;
+  background-image: radial-gradient(
+    circle,
+    rgba(28, 24, 14, 0.055) 1px,
+    transparent 1px
+  );
+  background-size: 6px 6px;
+}
+
+/* Remove the previous body::after (no scanlines in this theme) */
+[data-theme="tui"] body::after {
+  content: none;
+}
+
+/* Mac Classic-style inset fields */
+[data-theme="tui"] input,
+[data-theme="tui"] select,
+[data-theme="tui"] textarea {
+  caret-color: var(--text);
+  box-shadow: inset 1px 1px 0 var(--border);
+}
+
+[data-theme="tui"] input:focus,
+[data-theme="tui"] select:focus,
+[data-theme="tui"] textarea:focus {
+  box-shadow: inset 2px 2px 0 var(--border);
+}
+
+/* Slightly wider tracking on all buttons */
+[data-theme="tui"] button {
+  letter-spacing: 0.03em;
 }
 
 /* ── Utilities ─────────────────────────────────────────────────────────────── */

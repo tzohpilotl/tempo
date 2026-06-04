@@ -103,7 +103,7 @@
   height: 64px;
   border-radius: 50%;
   background: var(--accent);
-  color: #000;
+  color: var(--btn-accent-fg);
   display: flex;
   align-items: center;
   justify-content: center;

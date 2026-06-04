@@ -1,5 +1,5 @@
-
 import type { User } from '../types';
+import { useTheme } from '../context/theme';
 import styles from './Sidebar.module.css';
 
 interface Props {
@@ -8,6 +8,8 @@ interface Props {
 }
 
 export default function Sidebar({ user, activeTab }: Props) {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <aside className={styles.sidebar}>
       {/* Logo */}
@@ -38,6 +40,13 @@ export default function Sidebar({ user, activeTab }: Props) {
           </div>
         </div>
         <button
+          className={styles.themeBtn}
+          onClick={toggleTheme}
+          title={theme === 'tui' ? 'Switch to default theme' : 'Switch to TUI theme'}
+        >
+          {theme === 'tui' ? <DefaultThemeIcon /> : <TerminalIcon />}
+        </button>
+        <button
           className={styles.logoutBtn}
           onClick={() => { window.location.href = '/api/auth/logout'; }}
           title="Sign out"
@@ -54,6 +63,24 @@ function TimerIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10"/>
       <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+}
+
+function TerminalIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="4 17 10 11 4 5"/>
+      <line x1="12" y1="19" x2="20" y2="19"/>
+    </svg>
+  );
+}
+
+function DefaultThemeIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
     </svg>
   );
 }

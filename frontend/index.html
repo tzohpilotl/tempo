@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tempo</title>
+    <!-- Apply saved theme before React mounts to prevent flash -->
+    <script>
+      (function () {
+        var t = localStorage.getItem('tempo-theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
