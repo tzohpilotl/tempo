@@ -35,6 +35,37 @@ export class TrackingEventRepository implements ITrackingEventRepository {
       .getMany();
   }
 
+  async findPaginated(
+    userId: string,
+    page: number,
+    pageSize: number,
+    projectId?: string,
+  ): Promise<{ data: TrackingEvent[]; total: number }> {
+    const qb = this.orm
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.project', 'project');
+
+    if (projectId) {
+      qb.where(
+        'event.project_id = :projectId AND project.user_id = :userId',
+        { projectId, userId },
+      );
+    } else {
+      qb.where(
+        '(project.user_id = :userId OR event.project_id IS NULL)',
+        { userId },
+      );
+    }
+
+    const [data, total] = await qb
+      .orderBy('event.started_at', 'DESC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getManyAndCount();
+
+    return { data, total };
+  }
+
   async create(data: {
     started_at: Date;
     stopped_at: Date;

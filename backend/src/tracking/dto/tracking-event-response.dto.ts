@@ -18,6 +18,14 @@ export interface TrackingEventResponse {
  * Converts a TrackingEvent entity into the API response shape.
  * Computes duration_seconds so the frontend never has to do date math.
  */
+export interface TrackingEventsPage {
+  data: TrackingEventResponse[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export function toTrackingEventResponse(
   event: TrackingEvent,
 ): TrackingEventResponse {

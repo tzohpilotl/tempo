@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -10,6 +11,7 @@ import {
 import { TrackingService } from './tracking.service';
 import { CreateTrackingEventDto } from './dto/create-tracking-event.dto';
 import {
+  TrackingEventsPage,
   TrackingEventResponse,
   toTrackingEventResponse,
 } from './dto/tracking-event-response.dto';
@@ -23,14 +25,32 @@ export class TrackingController {
   constructor(private readonly trackingService: TrackingService) {}
 
   /**
-   * GET /api/tracking
-   * Returns all tracking events for the logged-in user, newest first.
-   * Each event includes computed duration_seconds and a project summary.
+   * GET /api/tracking?page=1&pageSize=20&projectId=<uuid>
+   * Returns a paginated list of tracking events for the logged-in user.
+   * Optionally filter by projectId.
    */
   @Get()
-  async findAll(@CurrentUser() user: User): Promise<TrackingEventResponse[]> {
-    const events = await this.trackingService.findAllForUser(user.user_id);
-    return events.map(toTrackingEventResponse);
+  async findAll(
+    @CurrentUser() user: User,
+    @Query('page') rawPage?: string,
+    @Query('pageSize') rawSize?: string,
+    @Query('projectId') projectId?: string,
+  ): Promise<TrackingEventsPage> {
+    const page = Math.max(1, Number(rawPage) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(rawSize) || 20));
+    const { data, total } = await this.trackingService.findPaginated(
+      user.user_id,
+      page,
+      pageSize,
+      projectId,
+    );
+    return {
+      data: data.map(toTrackingEventResponse),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize) || 1,
+    };
   }
 
   /**

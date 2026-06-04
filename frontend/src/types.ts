@@ -20,3 +20,11 @@ export interface TrackingEvent {
   task_description: string | null;
   project: { project_id: string; name: string } | null;
 }
+
+export interface TrackingEventsPage {
+  data: TrackingEvent[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}

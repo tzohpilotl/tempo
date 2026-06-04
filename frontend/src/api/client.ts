@@ -1,4 +1,4 @@
-import type { User, Project, TrackingEvent } from "../types";
+import type { User, Project, TrackingEvent, TrackingEventsPage } from "../types";
 
 const BASE = "/api";
 
@@ -58,7 +58,14 @@ export const projects = {
 // ── Tracking ──────────────────────────────────────────────────────────────────
 
 export const tracking = {
-  list: () => request<TrackingEvent[]>("/tracking"),
+  list: (params: { page?: number; pageSize?: number; projectId?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.page !== undefined) qs.set("page", String(params.page));
+    if (params.pageSize !== undefined) qs.set("pageSize", String(params.pageSize));
+    if (params.projectId) qs.set("projectId", params.projectId);
+    const query = qs.toString();
+    return request<TrackingEventsPage>(`/tracking${query ? "?" + query : ""}`);
+  },
 
   log: (payload: {
     started_at: string;

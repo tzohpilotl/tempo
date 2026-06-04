@@ -23,6 +23,15 @@ export class TrackingService {
     return this.events.findAllByUser(userId);
   }
 
+  async findPaginated(
+    userId: string,
+    page: number,
+    pageSize: number,
+    projectId?: string,
+  ): Promise<{ data: TrackingEvent[]; total: number }> {
+    return this.events.findPaginated(userId, page, pageSize, projectId);
+  }
+
   /**
    * Logs a completed timer session.
    *

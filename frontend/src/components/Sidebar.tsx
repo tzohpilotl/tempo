@@ -1,14 +1,16 @@
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../types';
 import { useTheme } from '../context/theme';
 import styles from './Sidebar.module.css';
 
 interface Props {
   user: User;
-  activeTab: 'timer';
+  activeTab: 'timer' | 'sessions';
 }
 
 export default function Sidebar({ user, activeTab }: Props) {
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
 
   return (
     <aside className={styles.sidebar}>
@@ -22,9 +24,17 @@ export default function Sidebar({ user, activeTab }: Props) {
       <nav className={styles.nav}>
         <button
           className={`${styles.navItem} ${activeTab === 'timer' ? styles.active : ''}`}
+          onClick={() => navigate('/dashboard')}
         >
           <TimerIcon />
           Timer
+        </button>
+        <button
+          className={`${styles.navItem} ${activeTab === 'sessions' ? styles.active : ''}`}
+          onClick={() => navigate('/sessions')}
+        >
+          <SessionsIcon />
+          Sessions
         </button>
       </nav>
 
@@ -63,6 +73,19 @@ function TimerIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10"/>
       <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+}
+
+function SessionsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="8" y1="6" x2="21" y2="6"/>
+      <line x1="8" y1="12" x2="21" y2="12"/>
+      <line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.01" y2="6"/>
+      <line x1="3" y1="12" x2="3.01" y2="12"/>
+      <line x1="3" y1="18" x2="3.01" y2="18"/>
     </svg>
   );
 }

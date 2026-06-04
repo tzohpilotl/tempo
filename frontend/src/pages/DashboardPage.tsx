@@ -25,10 +25,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return;
 
-    Promise.all([projectsApi.list(), trackingApi.list()])
-      .then(([p, e]) => {
+    Promise.all([projectsApi.list(), trackingApi.list({ pageSize: 10 })])
+      .then(([p, page]) => {
         setProjects(p);
-        setEvents(e);
+        setEvents(page.data);
       })
       .catch(console.error)
       .finally(() => setDataLoading(false));
@@ -46,7 +46,7 @@ export default function DashboardPage() {
           <Timer
             projects={projects}
             onEventLogged={(event) =>
-              setEvents((prev) => [event, ...prev])
+              setEvents((prev) => [event, ...prev].slice(0, 10))
             }
             onProjectCreated={(project) =>
               setProjects((prev) => [project, ...prev])
