@@ -39,3 +39,11 @@ export interface TrackingEventsPage {
   pageSize: number;
   totalPages: number;
 }
+
+export interface ProjectStats {
+  project_id: string;
+  name: string;
+  created_at: string;
+  total_seconds: number;
+  event_count: number;
+}

@@ -1,0 +1,316 @@
+.root {
+  display: flex;
+  height: 100%;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 2rem;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.count {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+/* ── Project list ────────────────────────────────────────────────────────────── */
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.15s var(--ease);
+}
+
+.card:hover {
+  border-color: var(--border);
+}
+
+.cardMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.projectName {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Stat chips ──────────────────────────────────────────────────────────────── */
+
+.statRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+}
+
+.chipLabel {
+  color: var(--text-faint);
+}
+
+.chipValue {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ── Actions ─────────────────────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s var(--ease);
+}
+
+.card:hover .actions {
+  opacity: 1;
+}
+
+.editBtn,
+.deleteBtn {
+  padding: 0.375rem;
+  border-radius: var(--radius);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s var(--ease), background 0.12s var(--ease), border-color 0.12s var(--ease);
+}
+
+.editBtn:hover {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-color: var(--border-soft);
+}
+
+.deleteBtn:hover {
+  color: var(--danger);
+  background: var(--danger-dim, color-mix(in srgb, var(--danger) 12%, transparent));
+  border-color: var(--border-soft);
+}
+
+/* ── Inline edit ─────────────────────────────────────────────────────────────── */
+
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.editInput {
+  flex: 1;
+  min-width: 160px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.9rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  transition: border-color 0.12s var(--ease);
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.editInputError {
+  border-color: var(--danger);
+}
+
+.saveBtn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  transition: opacity 0.12s var(--ease);
+}
+
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  transition: color 0.12s var(--ease), background 0.12s var(--ease);
+}
+
+.cancelBtn:hover {
+  color: var(--text);
+  background: var(--bg-surface);
+}
+
+.editErrorMsg {
+  font-size: 0.75rem;
+  color: var(--danger);
+  width: 100%;
+}
+
+/* ── Skeleton ────────────────────────────────────────────────────────────────── */
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.skeletonRow {
+  height: 80px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  opacity: 0.6;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────────── */
+
+.empty {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem;
+  color: var(--text-faint);
+  font-size: 0.875rem;
+}
+
+/* ── Delete confirmation dialog ──────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.dialog {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  max-width: 400px;
+  width: calc(100% - 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.dialogTitle {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.dialogBody {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.dialogCancel {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  transition: color 0.12s var(--ease), background 0.12s var(--ease);
+}
+
+.dialogCancel:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.dialogConfirm {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  transition: opacity 0.12s var(--ease);
+}
+
+.dialogConfirm:hover {
+  opacity: 0.85;
+}

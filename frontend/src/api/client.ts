@@ -1,4 +1,4 @@
-import type { User, Project, TrackingEvent, TrackingEventsPage, TrackingTimeSummary } from "../types";
+import type { User, Project, ProjectStats, TrackingEvent, TrackingEventsPage, TrackingTimeSummary } from "../types";
 
 const BASE = "/api";
 
@@ -48,11 +48,22 @@ export const auth = {
 export const projects = {
   list: () => request<Project[]>("/projects"),
 
+  stats: () => request<ProjectStats[]>("/projects/stats"),
+
   create: (name: string) =>
     request<Project>("/projects", {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
+
+  update: (projectId: string, name: string) =>
+    request<Project>(`/projects/${projectId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+
+  delete: (projectId: string) =>
+    request<void>(`/projects/${projectId}`, { method: "DELETE" }),
 };
 
 // ── Tracking ──────────────────────────────────────────────────────────────────

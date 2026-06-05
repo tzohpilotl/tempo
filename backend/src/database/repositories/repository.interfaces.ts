@@ -13,11 +13,22 @@ export interface IUserRepository {
 
 // ── Project Repository ───────────────────────────────────────────────────────
 
+export interface ProjectStats {
+  project_id: string;
+  name: string;
+  created_at: Date;
+  total_seconds: number;
+  event_count: number;
+}
+
 export interface IProjectRepository {
   findAllByUser(userId: string): Promise<Project[]>;
   findByNameAndUser(name: string, userId: string): Promise<Project | null>;
   findById(projectId: string): Promise<Project | null>;
   create(data: Pick<Project, 'name' | 'user_id'>): Promise<Project>;
+  update(projectId: string, name: string): Promise<Project>;
+  delete(projectId: string): Promise<void>;
+  getStatsForUser(userId: string): Promise<ProjectStats[]>;
 }
 
 // ── Tracking Event Repository ────────────────────────────────────────────────

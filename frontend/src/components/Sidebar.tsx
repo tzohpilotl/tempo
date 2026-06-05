@@ -5,7 +5,7 @@ import styles from './Sidebar.module.css';
 
 interface Props {
   user: User;
-  activeTab: 'timer' | 'sessions';
+  activeTab: 'timer' | 'sessions' | 'projects';
 }
 
 export default function Sidebar({ user, activeTab }: Props) {
@@ -35,6 +35,13 @@ export default function Sidebar({ user, activeTab }: Props) {
         >
           <SessionsIcon />
           Sessions
+        </button>
+        <button
+          className={`${styles.navItem} ${activeTab === 'projects' ? styles.active : ''}`}
+          onClick={() => navigate('/projects')}
+        >
+          <ProjectsIcon />
+          Projects
         </button>
       </nav>
 
@@ -73,6 +80,14 @@ function TimerIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10"/>
       <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+}
+
+function ProjectsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"/>
     </svg>
   );
 }

@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
 import DashboardPage from './pages/DashboardPage';
 import SessionsPage from './pages/SessionsPage';
+import ProjectsPage from './pages/ProjectsPage';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/sessions" element={<SessionsPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
