@@ -1,5 +1,6 @@
 import type { TrackingTimeSummary } from '../types';
 import { useTheme } from '../context/theme';
+import { capitalize } from '../utils/text';
 import styles from './PieChart.module.css';
 
 const SIZE = 260;
@@ -81,7 +82,7 @@ export default function PieChart({ summary }: Props) {
     return {
       path: sector(startA, endA),
       color: palette[i % palette.length],
-      label: item.name ?? 'No project',
+      label: item.name ? capitalize(item.name) : 'No project',
       seconds: item.total_seconds,
       pct: Math.round(ratio * 100),
     };

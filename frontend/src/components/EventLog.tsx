@@ -1,4 +1,5 @@
 import type { TrackingEvent } from '../types';
+import { capitalize } from '../utils/text';
 import styles from './EventLog.module.css';
 
 interface Props {
@@ -15,8 +16,6 @@ function formatDuration(seconds: number): string {
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
 }
-
-const ucFirst = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
@@ -64,14 +63,14 @@ export default function EventLog({ events, loading }: Props) {
           >
             <div className={styles.itemLeft}>
               {event.task_description ? (
-                <span className={styles.taskDesc}>{ucFirst(event.task_description)}</span>
+                <span className={styles.taskDesc}>{capitalize(event.task_description)}</span>
               ) : (
                 <span className={styles.taskDescEmpty}>Untitled session</span>
               )}
               <div className={styles.meta}>
                 {event.project && (
                   <>
-                    <span className={styles.projectTag}>{ucFirst(event.project.name)}</span>
+                    <span className={styles.projectTag}>{capitalize(event.project.name)}</span>
                     <span className={styles.metaDot}>·</span>
                   </>
                 )}

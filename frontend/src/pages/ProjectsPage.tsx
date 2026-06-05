@@ -4,6 +4,7 @@ import { projects as projectsApi } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from '../components/Sidebar';
 import type { ProjectStats } from '../types';
+import { capitalize } from '../utils/text';
 import styles from './ProjectsPage.module.css';
 
 export default function ProjectsPage() {
@@ -127,7 +128,7 @@ export default function ProjectsPage() {
                       {editError && <span className={styles.editErrorMsg}>{editError}</span>}
                     </div>
                   ) : (
-                    <span className={styles.projectName}>{p.name}</span>
+                    <span className={styles.projectName}>{capitalize(p.name)}</span>
                   )}
 
                   <div className={styles.statRow}>
@@ -169,7 +170,7 @@ export default function ProjectsPage() {
             <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
               <h2 className={styles.dialogTitle}>Delete project?</h2>
               <p className={styles.dialogBody}>
-                <strong>{target?.name}</strong> will be permanently deleted. Tracked sessions linked
+                <strong>{target ? capitalize(target.name) : ''}</strong> will be permanently deleted. Tracked sessions linked
                 to this project will remain but become unassigned.
               </p>
               <div className={styles.dialogActions}>
