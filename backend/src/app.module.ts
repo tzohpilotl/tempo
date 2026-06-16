@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TrackingModule } from './tracking/tracking.module';
@@ -26,9 +28,20 @@ import { HealthController } from './common/health.controller';
       logging: process.env.NODE_ENV === 'development',
     }),
 
+    // Global rate limiting: 100 requests per minute per IP.
+    // Auth routes override this with a stricter 10/min limit.
+    ThrottlerModule.forRoot([{
+      name: 'default',
+      ttl: 60_000,
+      limit: 100,
+    }]),
+
     AuthModule,
     ProjectsModule,
     TrackingModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

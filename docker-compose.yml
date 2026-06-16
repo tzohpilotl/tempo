@@ -2,6 +2,7 @@ version: '3.9'
 
 services:
   backend:
+    image: ghcr.io/${GITHUB_USERNAME}/time-tracker-backend:latest
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -12,11 +13,11 @@ services:
       SESSION_SECRET: ${SESSION_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      # OAuth callback must match what's registered in Google Cloud Console
-      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost/api/auth/google/callback}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      FRONTEND_URL: ${FRONTEND_URL}
+      # Optional: set to your Google email to restrict access to a single user
+      ALLOWED_EMAIL: ${ALLOWED_EMAIL:-}
     volumes:
-      # SQLite data persists across container restarts and re-deploys
       - sqlite_data:/app/data
     restart: unless-stopped
     healthcheck:
@@ -27,17 +28,30 @@ services:
       start_period: 10s
 
   frontend:
+    image: ghcr.io/${GITHUB_USERNAME}/time-tracker-frontend:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "${PORT:-80}:80"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 (QUIC)
+    environment:
+      # Caddy reads this to decide which domain to serve and get a TLS cert for.
+      # Set to your domain in .env. Use "localhost" for local Docker testing.
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - caddy_data:/data      # TLS certificates — must persist across restarts
+      - caddy_config:/config  # Caddy internal config cache
     depends_on:
       backend:
-        # nginx won't start until the backend passes its healthcheck
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
   sqlite_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local

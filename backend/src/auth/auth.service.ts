@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserRepository } from '../database/repositories/user.repository';
 import { User } from '../database/entities/user.entity';
 
@@ -17,10 +17,13 @@ export class AuthService {
    * Looks up the user by their Google ID; creates them if first login.
    */
   async findOrCreateUser(profile: GoogleProfile): Promise<User> {
-    const existing = await this.users.findByGoogleId(profile.googleId);
-    if (existing) {
-      return existing;
+    const allowedEmail = process.env.ALLOWED_EMAIL;
+    if (allowedEmail && profile.email !== allowedEmail) {
+      throw new UnauthorizedException('Access restricted to authorised users.');
     }
+
+    const existing = await this.users.findByGoogleId(profile.googleId);
+    if (existing) return existing;
 
     return this.users.create({
       google_id: profile.googleId,

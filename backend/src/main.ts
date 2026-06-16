@@ -1,4 +1,5 @@
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import session from "express-session";
 import passport from "passport";
@@ -8,7 +9,13 @@ import createMemoryStore from "memorystore";
 const SessionStore = createMemoryStore(session);
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Trust one level of reverse proxy (Caddy) so secure cookies and
+  // X-Forwarded-Proto work correctly behind TLS termination.
+  if (process.env.NODE_ENV === "production") {
+    app.set("trust proxy", 1);
+  }
 
   // Prefix all backend routes with /api
   app.setGlobalPrefix("api");

@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { AuthenticatedGuard } from './guards/authenticated.guard';
@@ -23,6 +24,7 @@ export class AuthController {
    * Redirects the browser to Google's OAuth consent screen.
    * No body — the GoogleAuthGuard handles the redirect.
    */
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   googleLogin(): void {
@@ -35,6 +37,7 @@ export class AuthController {
    * Passport validates the token, calls our strategy's validate(),
    * which calls AuthService.findOrCreateUser() and sets req.user.
    */
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   async googleCallback(@Req() req: Request, @Res() res: Response): Promise<void> {

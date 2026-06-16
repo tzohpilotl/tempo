@@ -1,0 +1,25 @@
+{$DOMAIN:localhost} {
+    encode gzip zstd
+
+    # Security headers applied to every response
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options             "DENY"
+        X-Content-Type-Options      "nosniff"
+        Referrer-Policy             "strict-origin-when-cross-origin"
+        Content-Security-Policy     "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'"
+        -Server
+    }
+
+    # Proxy all API requests to the NestJS backend
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
+
+    # Serve the React SPA — unknown paths fall back to index.html
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}

@@ -2,13 +2,14 @@
 
 A local-first time tracking app. Log sessions, organise by project, see where your hours go.
 
-Built with **NestJS** · **TypeORM + SQLite** · **React + Vite** · **Docker**
+Built with **NestJS** · **TypeORM + SQLite** · **React + Vite** · **Docker + Caddy**
 
 ---
 
 ## Table of Contents
 
 - [Architecture](#architecture)
+- [Security](#security)
 - [Prerequisites](#prerequisites)
 - [Google OAuth Setup](#google-oauth-setup)
 - [Local Development](#local-development)
@@ -36,11 +37,65 @@ Built with **NestJS** · **TypeORM + SQLite** · **React + Vite** · **Docker**
 └─────────────────────────────────┘
 
 Production (Docker):
-Browser → nginx:80 → /api/* → backend:3000
-                   → /*     → React SPA (static)
+Browser → Caddy:443 (TLS) → /api/* → backend:3000
+                           → /*     → React SPA (static, baked into Caddy image)
 ```
 
-Sessions are cookie-based (express-session). The SQLite database is stored in a named Docker volume and persists across container restarts and re-deploys.
+Sessions are cookie-based (express-session, httpOnly, secure). The SQLite database is stored in a named Docker volume and persists across container restarts and re-deploys. TLS certificates are provisioned automatically by Caddy via Let's Encrypt and persisted in a separate named volume.
+
+---
+
+## Security
+
+This section documents the security architecture and the decisions behind it. These are active constraints, not aspirations.
+
+### Authentication
+
+- **Google OAuth 2.0 only.** No passwords, no local credentials. Authentication is fully delegated to Google.
+- **Session cookies, not JWTs.** Sessions use `express-session` with `httpOnly` and `secure` flags. httpOnly prevents JavaScript from reading the cookie (XSS mitigation). The `secure` flag ensures cookies are only transmitted over HTTPS.
+- **Session deserialization on every request.** Only the `user_id` is stored in the session. On each request, the full user record is fetched from the database. This means a deleted/blocked user loses access immediately without waiting for a token to expire.
+- **google_id is never returned to the frontend.** The `/api/auth/me` endpoint strips the `google_id` field before responding.
+
+### Access Control
+
+- **Optional single-user allowlist.** Set `ALLOWED_EMAIL` in `.env` to your Google email address to prevent anyone else from creating an account. If unset, any Google account can sign up — appropriate for a shared or team install, but not for a personal deployment.
+- **User data isolation.** Every database query filters by `user_id`. A user cannot access another user's projects or tracking events.
+
+### Transport Security
+
+- **TLS everywhere, managed by Caddy.** Caddy obtains and renews TLS certificates automatically from Let's Encrypt. Port 3000 (the NestJS process) is never exposed to the internet — only Caddy's ports 80 and 443 are bound on the host.
+- **Reverse proxy trust.** `trust proxy 1` is set in Express so that the `X-Forwarded-Proto` header from Caddy is trusted. This ensures `secure` cookies are set correctly even though NestJS sees HTTP traffic internally.
+
+### HTTP Security Headers
+
+All responses carry the following headers, set by Caddy:
+
+| Header | Value | Purpose |
+|---|---|---|
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` | Force HTTPS for 1 year |
+| `X-Frame-Options` | `DENY` | Block clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Block MIME sniffing |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limit referrer leakage |
+| `Content-Security-Policy` | Restricts to `'self'` with narrow exceptions | Block XSS resource loading |
+| `Server` | *(removed)* | Don't reveal server software |
+
+### Rate Limiting
+
+- **Global: 100 requests / 60 s per IP** — applied to all routes via `ThrottlerGuard`.
+- **Auth routes: 10 requests / 60 s per IP** — stricter limit on `/api/auth/google` and `/api/auth/google/callback` to slow down automated abuse.
+- **Health endpoint: exempt** — Docker's own healthcheck would otherwise consume rate limit budget.
+
+### Data
+
+- **SQLite with TypeORM parameterised queries.** No raw SQL; ORM handles escaping.
+- **Schema synchronisation is disabled in production.** Only enabled in development (`NODE_ENV !== 'production'`), preventing accidental schema mutation in prod.
+- **Database not exposed.** SQLite lives in a Docker named volume, not bind-mounted to a predictable host path.
+
+### Known Limitations
+
+- **In-memory session store.** Sessions live in `memorystore` (in-process). A container restart loses all active sessions — users are redirected to log in again. For a personal single-user app this is acceptable. To harden: replace with `connect-pg-simple` backed by a Postgres instance.
+- **No CSRF protection.** The app relies on cookie `SameSite` defaults (`Lax`) rather than explicit CSRF tokens. This is adequate for a same-origin SPA that never accepts cross-origin form posts.
+- **Single-replica only.** The in-memory session store and SQLite file are not shareable across multiple instances. Do not run more than one backend container replica.
 
 ---
 
@@ -64,7 +119,6 @@ You need a Google OAuth 2.0 client before the app can authenticate users.
 5. Application type: **Web application**
 6. Add **Authorised redirect URIs**:
    - Local dev: `http://localhost:3000/api/auth/google/callback`
-   - Docker: `http://localhost/api/auth/google/callback`
    - Production VPS: `https://yourdomain.com/api/auth/google/callback`
 7. Copy the **Client ID** and **Client Secret** into your `.env`
 
@@ -121,17 +175,19 @@ cd frontend && npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-> **Note on SQLite:** The backend uses `sqlite3` which requires native compilation. Running `npm install` inside Docker works automatically (build tools are installed in the Dockerfile). For local development on macOS or Windows, `sqlite3` prebuilt binaries are available for common platforms and should install without issues.
+> **Note on SQLite:** `better-sqlite3` requires native compilation. Running `npm install` inside Docker works automatically (build tools are installed in the Dockerfile). For local development on macOS or Windows, prebuilt binaries are available for common platforms and should install without issues.
 
 ---
 
 ## Docker Deployment
 
-### 1. Configure environment
+See [DEPLOYMENT.md](DEPLOYMENT.md) for a full step-by-step guide targeting a DigitalOcean VPS.
+
+### Quick start
 
 ```bash
 cp .env.example .env
-# Edit .env with production values
+# Edit .env with production values — especially DOMAIN, SESSION_SECRET, and OAuth credentials
 ```
 
 Minimum required for Docker:
@@ -139,44 +195,31 @@ Minimum required for Docker:
 ```env
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
-GOOGLE_CALLBACK_URL=http://localhost/api/auth/google/callback
+GOOGLE_CALLBACK_URL=https://yourdomain.com/api/auth/google/callback
 SESSION_SECRET=<output of: openssl rand -hex 32>
-FRONTEND_URL=http://localhost
+FRONTEND_URL=https://yourdomain.com
+DOMAIN=yourdomain.com
 ```
-
-### 2. Build and start
 
 ```bash
 docker compose up --build -d
 ```
 
-Open [http://localhost](http://localhost).
+Caddy will automatically provision a TLS certificate for the domain in `DOMAIN`.
 
-### 3. View logs
+### Logs
 
 ```bash
-docker compose logs -f backend    # backend logs
-docker compose logs -f frontend   # nginx logs
+docker compose logs -f backend    # NestJS logs
+docker compose logs -f frontend   # Caddy access + TLS logs
 ```
 
-### 4. Stop
+### Stop
 
 ```bash
-docker compose down               # keeps data volume
+docker compose down               # keeps data volumes
 docker compose down -v            # also deletes data (⚠️ irreversible)
 ```
-
-### Deploying to a VPS
-
-1. Point your domain's DNS A record to the VPS IP
-2. Update `.env`:
-   ```env
-   GOOGLE_CALLBACK_URL=https://yourdomain.com/api/auth/google/callback
-   FRONTEND_URL=https://yourdomain.com
-   ```
-3. Add your domain to Google Cloud Console's authorised redirect URIs
-4. Put a TLS-terminating reverse proxy (Caddy or nginx) in front of port 80, or update the Docker port mapping
-5. `docker compose up --build -d`
 
 ---
 
@@ -187,10 +230,11 @@ docker compose down -v            # also deletes data (⚠️ irreversible)
 | `GOOGLE_CLIENT_ID` | ✅ | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | ✅ | — | Google OAuth client secret |
 | `GOOGLE_CALLBACK_URL` | ✅ | — | Full URL of the OAuth callback endpoint |
-| `SESSION_SECRET` | ✅ | — | Secret for signing session cookies |
-| `FRONTEND_URL` | ✅ | `http://localhost` | Frontend origin (for CORS + post-login redirect) |
+| `SESSION_SECRET` | ✅ | — | Secret for signing session cookies — use `openssl rand -hex 32` |
+| `DOMAIN` | ✅ | `localhost` | Domain Caddy serves (and gets a TLS cert for) |
+| `FRONTEND_URL` | ✅ | — | Frontend origin used for CORS and post-login redirect |
+| `ALLOWED_EMAIL` | | *(unset)* | If set, only this Google email can log in |
 | `DATABASE_PATH` | | `./data/time-tracker.sqlite` | Path to the SQLite file |
-| `PORT` | | `80` | Host port for the nginx container |
 | `NODE_ENV` | | `development` | Set to `production` in Docker |
 
 ---
@@ -251,26 +295,29 @@ time-tracker/
 ├── .gitignore
 ├── package.json              # Monorepo workspace root
 ├── docker-compose.yml
+├── DEPLOYMENT.md             # VPS deployment guide
 │
 ├── backend/
-│   ├── Dockerfile
+│   ├── Dockerfile            # Multi-stage: build → runtime (non-root user)
+│   ├── .dockerignore
 │   ├── nest-cli.json
 │   ├── tsconfig.json
 │   ├── package.json
 │   └── src/
-│       ├── main.ts           # Bootstrap: sessions, CORS, Passport
-│       ├── app.module.ts     # Root module
+│       ├── main.ts           # Bootstrap: sessions, CORS, Passport, proxy trust
+│       ├── app.module.ts     # Root module: ThrottlerModule, global ThrottlerGuard
 │       ├── auth/             # Google OAuth, guards, session serializer
 │       ├── projects/         # Projects CRUD
 │       ├── tracking/         # Tracking events CRUD
 │       ├── database/
 │       │   ├── entities/     # TypeORM entities (User, Project, TrackingEvent)
 │       │   └── repositories/ # Repository interfaces + SQLite implementations
-│       └── common/           # Guards, decorators, health controller
+│       └── common/           # Health controller (throttle-exempt)
 │
 └── frontend/
-    ├── Dockerfile
-    ├── nginx.conf
+    ├── Dockerfile            # Multi-stage: Node build → caddy:alpine
+    ├── .dockerignore
+    ├── Caddyfile             # TLS, security headers, SPA routing, API proxy
     ├── vite.config.ts        # Proxies /api → backend in dev
     ├── tsconfig.json
     ├── index.html
@@ -295,4 +342,4 @@ The repository layer is abstracted behind interfaces in `src/database/repositori
 2. Change `type: 'sqlite'` to `type: 'postgres'` in `app.module.ts` and add connection params
 3. The rest of the application code is unchanged
 
-For sessions, swap `memorystore` for `connect-pg-simple` and point it at the same Postgres instance.
+For sessions, swap `memorystore` for `connect-pg-simple` and point it at the same Postgres instance. This also resolves the in-memory session limitation noted in the Security section.
