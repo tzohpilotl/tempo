@@ -8,7 +8,7 @@
         X-Frame-Options             "DENY"
         X-Content-Type-Options      "nosniff"
         Referrer-Policy             "strict-origin-when-cross-origin"
-        Content-Security-Policy     "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cloudflareinsights.com"
+        Content-Security-Policy     "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cloudflareinsights.com https://o252225.ingest.us.sentry.io"
         -Server
     }
 
