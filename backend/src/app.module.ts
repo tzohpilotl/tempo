@@ -23,8 +23,7 @@ import { HealthController } from './common/health.controller';
       type: 'better-sqlite3',
       database: process.env.DATABASE_PATH ?? './data/time-tracker.sqlite',
       entities: [User, Project, TrackingEvent],
-      // Auto-sync schema in dev; use migrations in production
-      synchronize: process.env.NODE_ENV !== 'production',
+      synchronize: true,
       logging: process.env.NODE_ENV === 'development',
     }),
 
