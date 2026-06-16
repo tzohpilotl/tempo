@@ -1,13 +1,13 @@
 # ── Stage 1: production dependencies (native compilation) ────────────────────
 FROM node:20-alpine AS deps
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 py3-setuptools make g++
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
 # ── Stage 2: build (full deps + TypeScript compile) ───────────────────────────
 FROM node:20-alpine AS builder
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 py3-setuptools make g++
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci

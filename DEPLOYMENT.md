@@ -125,11 +125,46 @@ GitHub's built-in `GITHUB_TOKEN` is used automatically to push images to GHCR �
 
 ## 7. First Deploy
 
+### Give the server read access to the repository
+
+The server needs to pull from GitHub when the Actions runner triggers a deploy. The simplest approach differs by repo visibility:
+
+**Public repository** — no setup needed, skip to cloning below.
+
+**Private repository** — create a read-only deploy key:
+
+On the **server**, generate a key (no passphrase):
+
+```bash
+ssh-keygen -t ed25519 -C "tempo-vps-deploy" -f ~/.ssh/github_deploy
+```
+
+Print the public key:
+
+```bash
+cat ~/.ssh/github_deploy.pub
+```
+
+Add it to GitHub: **Repository → Settings → Deploy keys → Add deploy key**. Paste the public key, leave *Allow write access* unchecked.
+
+Tell SSH to use this key for GitHub:
+
+```bash
+cat >> ~/.ssh/config <<'EOF'
+Host github.com
+    IdentityFile ~/.ssh/github_deploy
+    IdentitiesOnly yes
+EOF
+```
+
 ### Clone the repository on the server
 
 ```bash
 cd /opt
+# Public repo:
 git clone https://github.com/yourusername/time-tracker.git tempo
+# Private repo:
+git clone git@github.com:yourusername/time-tracker.git tempo
 cd tempo
 ```
 
