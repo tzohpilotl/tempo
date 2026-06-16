@@ -41,8 +41,9 @@ services:
       # Set to your domain in .env. Use "localhost" for local Docker testing.
       DOMAIN: ${DOMAIN:-localhost}
     volumes:
-      - caddy_data:/data      # TLS certificates — must persist across restarts
-      - caddy_config:/config  # Caddy internal config cache
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./certs:/etc/caddy/certs:ro
     depends_on:
       backend:
         condition: service_healthy
