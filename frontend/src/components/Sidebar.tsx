@@ -12,12 +12,33 @@ export default function Sidebar({ user, activeTab }: Props) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
+  const themeTitle = theme === 'tui' ? 'Switch to default theme' : 'Switch to TUI theme';
+  const themeIcon = theme === 'tui' ? <DefaultThemeIcon /> : <TerminalIcon />;
+
   return (
     <aside className={styles.sidebar}>
-      {/* Logo */}
-      <div className={styles.logo}>
-        <span className={styles.logoMark}>◈</span>
-        <span className={styles.logoText}>Tempo</span>
+      {/* Top bar: on desktop shows only logo; on mobile shows logo + user controls */}
+      <div className={styles.topBar}>
+        <div className={styles.logo}>
+          <span className={styles.logoMark}>◈</span>
+          <span className={styles.logoText}>Tempo</span>
+        </div>
+        {/* Shown only on mobile */}
+        <div className={styles.topActions}>
+          <div className={styles.avatar}>
+            {user.display_name.charAt(0).toUpperCase()}
+          </div>
+          <button className={styles.themeBtn} onClick={toggleTheme} title={themeTitle}>
+            {themeIcon}
+          </button>
+          <button
+            className={styles.logoutBtn}
+            onClick={() => { window.location.href = '/api/auth/logout'; }}
+            title="Sign out"
+          >
+            <LogoutIcon />
+          </button>
+        </div>
       </div>
 
       {/* Nav */}
@@ -45,7 +66,7 @@ export default function Sidebar({ user, activeTab }: Props) {
         </button>
       </nav>
 
-      {/* User section at bottom */}
+      {/* Footer: shown on desktop only */}
       <div className={styles.footer}>
         <div className={styles.userInfo}>
           <div className={styles.avatar}>
@@ -56,12 +77,8 @@ export default function Sidebar({ user, activeTab }: Props) {
             <span className={styles.userEmail}>{user.email}</span>
           </div>
         </div>
-        <button
-          className={styles.themeBtn}
-          onClick={toggleTheme}
-          title={theme === 'tui' ? 'Switch to default theme' : 'Switch to TUI theme'}
-        >
-          {theme === 'tui' ? <DefaultThemeIcon /> : <TerminalIcon />}
+        <button className={styles.themeBtn} onClick={toggleTheme} title={themeTitle}>
+          {themeIcon}
         </button>
         <button
           className={styles.logoutBtn}

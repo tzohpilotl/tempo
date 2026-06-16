@@ -20,3 +20,24 @@
 .logSection {
   flex: 1;
 }
+
+@media (max-width: 640px) {
+  .root {
+    flex-direction: column;
+  }
+
+  .main {
+    padding: 1rem;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .timerSection {
+    flex: 1;
+    align-items: stretch;
+  }
+
+  .logSection {
+    display: none;
+  }
+}

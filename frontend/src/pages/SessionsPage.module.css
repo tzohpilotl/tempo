@@ -190,3 +190,18 @@
   font-size: 0.8rem;
   user-select: none;
 }
+
+@media (max-width: 640px) {
+  .root {
+    flex-direction: column;
+  }
+
+  .main {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+
+  .filterSelect {
+    min-width: 100px;
+  }
+}
