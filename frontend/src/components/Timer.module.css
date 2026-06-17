@@ -122,6 +122,11 @@
   transform: none;
 }
 
+.playBtn:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 4px;
+}
+
 .stopBtn {
   background: var(--bg-raised);
   border: 2px solid var(--accent);

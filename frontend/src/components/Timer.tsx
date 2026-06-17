@@ -122,6 +122,11 @@ export default function Timer({ projects, onEventLogged, onProjectCreated }: Pro
           placeholder="What are you working on?"
           value={taskDescription}
           onChange={(e) => setTaskDescription(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !saving && !saved) {
+              running ? handleStop() : handleStart();
+            }
+          }}
           maxLength={500}
           disabled={saving}
         />
