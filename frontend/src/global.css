@@ -68,8 +68,8 @@ button:focus-visible {
 
 input, select, textarea {
   font-family: var(--font-sans);
-  font-size: 14px;
-  background: rgba(255, 255, 255, 0.55);
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.35);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius);
