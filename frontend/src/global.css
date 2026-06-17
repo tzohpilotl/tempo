@@ -1,27 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
 
 /* ── Design Tokens ─────────────────────────────────────────────────────────── */
 :root {
-  /* Palette */
-  --bg:          #0d1117;
-  --bg-surface:  #161c26;
-  --bg-raised:   #1e2736;
-  --border:      #2a3444;
-  --border-soft: #1e2736;
+  /* Warm off-white palette */
+  --bg:          #eae7e0;
+  --bg-surface:  #e1ddd6;
+  --bg-raised:   #d6d2cc;
+  --border:      rgba(28, 24, 14, 0.12);
+  --border-soft: rgba(28, 24, 14, 0.06);
 
-  --text:        #e6edf3;
-  --text-muted:  #7d8fa3;
-  --text-faint:  #3d4f63;
+  --text:        #1c1810;
+  --text-muted:  #78746e;
+  --text-faint:  #b0aca6;
 
-  --accent:      #f0a500;   /* warm amber */
-  --accent-dim:  #f0a50022;
-  --accent-glow: #f0a50044;
+  --accent:      #f05500;   /* warm orange */
+  --accent-dim:  rgba(240, 85, 0, 0.10);
+  --accent-glow: rgba(240, 85, 0, 0.22);
 
-  --success:     #3fb950;
-  --danger:      #f85149;
+  --success:     #2a7a3a;
+  --danger:      #c43428;
 
-  /* Text colour on top of --accent backgrounds (default: dark on amber) */
-  --btn-accent-fg: #000;
+  /* Text colour on top of --accent backgrounds */
+  --btn-accent-fg: #fff;
 
   /* Typography */
   --font-sans:  'DM Sans',  sans-serif;
@@ -69,12 +69,12 @@ button:focus-visible {
 input, select, textarea {
   font-family: var(--font-sans);
   font-size: 14px;
-  background: var(--bg-raised);
+  background: rgba(255, 255, 255, 0.55);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   outline: none;
-  transition: border-color 0.15s var(--ease);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
 }
 
 input:focus, select:focus, textarea:focus {
@@ -84,7 +84,6 @@ input:focus, select:focus, textarea:focus {
 
 /* ── TUI Theme — warm parchment monochrome ─────────────────────────────────── */
 :root[data-theme="tui"] {
-  /* Warm cream palette — aged paper / early Mac */
   --bg:          #ebe6d9;
   --bg-surface:  #dedad0;
   --bg-raised:   #d2cec4;
@@ -95,7 +94,6 @@ input:focus, select:focus, textarea:focus {
   --text-muted:  #4c4840;
   --text-faint:  #908c86;
 
-  /* Monochromatic: near-black is the single "accent" hue */
   --accent:      #1c180e;
   --accent-dim:  rgba(28, 24, 14, 0.12);
   --accent-glow: rgba(28, 24, 14, 0.22);
@@ -103,7 +101,6 @@ input:focus, select:focus, textarea:focus {
   --success:     #1a401e;
   --danger:      #7a1818;
 
-  /* Text that sits on top of an --accent background (inverted) */
   --btn-accent-fg: #ebe6d9;
 
   --font-sans:   'DM Mono', 'Courier New', monospace;
@@ -114,14 +111,12 @@ input:focus, select:focus, textarea:focus {
   --ease:      linear;
 }
 
-/* Flatten every rounded corner, including hardcoded pill shapes */
 [data-theme="tui"] *,
 [data-theme="tui"] *::before,
 [data-theme="tui"] *::after {
   border-radius: 0 !important;
 }
 
-/* Subtle dot-grid texture — graph paper / old raster display feel */
 [data-theme="tui"] body {
   text-shadow: none;
   background-image: radial-gradient(
@@ -132,15 +127,14 @@ input:focus, select:focus, textarea:focus {
   background-size: 6px 6px;
 }
 
-/* Remove the previous body::after (no scanlines in this theme) */
 [data-theme="tui"] body::after {
   content: none;
 }
 
-/* Mac Classic-style inset fields */
 [data-theme="tui"] input,
 [data-theme="tui"] select,
 [data-theme="tui"] textarea {
+  background: var(--bg-raised);
   caret-color: var(--text);
   box-shadow: inset 1px 1px 0 var(--border);
 }
@@ -151,7 +145,6 @@ input:focus, select:focus, textarea:focus {
   box-shadow: inset 2px 2px 0 var(--border);
 }
 
-/* Slightly wider tracking on all buttons */
 [data-theme="tui"] button {
   letter-spacing: 0.03em;
 }
