@@ -1,10 +1,13 @@
+import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/theme';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
-import DashboardPage from './pages/DashboardPage';
-import SessionsPage from './pages/SessionsPage';
-import ProjectsPage from './pages/ProjectsPage';
+import AppLayout from './layouts/AppLayout';
+
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const SessionsPage = lazy(() => import('./pages/SessionsPage'));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
 
 export default function App() {
   return (
@@ -13,9 +16,11 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/sessions" element={<SessionsPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/sessions" element={<SessionsPage />} />
+            <Route path="/projects" element={<ProjectsPage />} />
+          </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>

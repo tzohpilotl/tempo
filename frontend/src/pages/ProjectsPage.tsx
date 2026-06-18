@@ -1,16 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { projects as projectsApi } from '../api/client';
-import { useAuth } from '../hooks/useAuth';
-import Sidebar from '../components/Sidebar';
 import type { ProjectStats } from '../types';
 import { capitalize } from '../utils/text';
 import styles from './ProjectsPage.module.css';
 
 export default function ProjectsPage() {
-  const { user, loading: authLoading, unauthenticated } = useAuth();
-  const navigate = useNavigate();
-
   const [stats, setStats] = useState<ProjectStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -21,23 +15,16 @@ export default function ProjectsPage() {
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!authLoading && unauthenticated) navigate('/login', { replace: true });
-  }, [unauthenticated, authLoading, navigate]);
-
-  useEffect(() => {
-    if (!user) return;
     projectsApi
       .stats()
       .then(setStats)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     if (editingId) editInputRef.current?.focus();
   }, [editingId]);
-
-  if (authLoading || !user) return null;
 
   function startEdit(p: ProjectStats) {
     setEditingId(p.project_id);
@@ -80,10 +67,8 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className={styles.root}>
-      <Sidebar user={user} activeTab="projects" />
-
-      <main className={styles.main}>
+    <>
+    <main className={styles.main}>
         <header className={styles.header}>
           <h1 className={styles.title}>Projects</h1>
           <span className={styles.count}>{stats.length} project{stats.length !== 1 ? 's' : ''}</span>
@@ -188,7 +173,7 @@ export default function ProjectsPage() {
           </div>
         );
       })()}
-    </div>
+    </>
   );
 }
 

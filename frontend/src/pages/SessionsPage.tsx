@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { projects as projectsApi, tracking as trackingApi } from '../api/client';
-import { useAuth } from '../hooks/useAuth';
-import Sidebar from '../components/Sidebar';
 import EventLog from '../components/EventLog';
 import PieChart from '../components/PieChart';
 import type { Project, TrackingEvent, TrackingTimeSummary } from '../types';
@@ -13,9 +10,6 @@ const PAGE_SIZE = 20;
 const EMPTY_SUMMARY: TrackingTimeSummary = { breakdown: [], total_seconds: 0 };
 
 export default function SessionsPage() {
-  const { user, loading: authLoading, unauthenticated } = useAuth();
-  const navigate = useNavigate();
-
   const [projects, setProjects] = useState<Project[]>([]);
   const [summary, setSummary] = useState<TrackingTimeSummary>(EMPTY_SUMMARY);
   const [events, setEvents] = useState<TrackingEvent[]>([]);
@@ -28,23 +22,15 @@ export default function SessionsPage() {
   const [eventsOpen, setEventsOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && unauthenticated) navigate('/login', { replace: true });
-  }, [unauthenticated, authLoading, navigate]);
-
-  // Load projects and summary (once on mount)
-  useEffect(() => {
-    if (!user) return;
     projectsApi.list().then(setProjects).catch(console.error);
     trackingApi
       .summary()
       .then(setSummary)
       .catch(console.error)
       .finally(() => setChartLoading(false));
-  }, [user]);
+  }, []);
 
-  // Load paginated events (re-runs on page/filter change)
   useEffect(() => {
-    if (!user) return;
     setListLoading(true);
     trackingApi
       .list({ page, pageSize: PAGE_SIZE, projectId: projectFilter || undefined })
@@ -55,9 +41,7 @@ export default function SessionsPage() {
       })
       .catch(console.error)
       .finally(() => setListLoading(false));
-  }, [user, page, projectFilter]);
-
-  if (authLoading || !user) return null;
+  }, [page, projectFilter]);
 
   const handleFilterChange = (value: string) => {
     setProjectFilter(value);
@@ -65,10 +49,7 @@ export default function SessionsPage() {
   };
 
   return (
-    <div className={styles.root}>
-      <Sidebar user={user} activeTab="sessions" />
-
-      <main className={styles.main}>
+    <main className={styles.main}>
         <header className={styles.header}>
           <h1 className={styles.title}>Sessions</h1>
         </header>
@@ -175,7 +156,6 @@ export default function SessionsPage() {
             </div>
           )}
         </section>
-      </main>
-    </div>
+    </main>
   );
 }

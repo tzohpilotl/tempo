@@ -1,0 +1,10 @@
+.root {
+  display: flex;
+  height: 100%;
+}
+
+@media (max-width: 640px) {
+  .root {
+    flex-direction: column;
+  }
+}

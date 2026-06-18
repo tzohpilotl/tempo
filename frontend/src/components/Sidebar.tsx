@@ -1,16 +1,22 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { User } from '../types';
 import { useTheme } from '../context/theme';
 import styles from './Sidebar.module.css';
 
 interface Props {
   user: User;
-  activeTab: 'timer' | 'sessions' | 'projects';
 }
 
-export default function Sidebar({ user, activeTab }: Props) {
+export default function Sidebar({ user }: Props) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  const activeTab = pathname.startsWith('/sessions')
+    ? 'sessions'
+    : pathname.startsWith('/projects')
+    ? 'projects'
+    : 'timer';
 
   const themeTitle = theme === 'tui' ? 'Switch to default theme' : 'Switch to TUI theme';
   const themeIcon = theme === 'tui' ? <DefaultThemeIcon /> : <TerminalIcon />;
