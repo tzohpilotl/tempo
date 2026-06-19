@@ -35,6 +35,8 @@ export default defineConfig({
         ALLOWED_EMAIL: '',
         PORT: '3000',
         FRONTEND_URL: 'http://localhost:5173',
+        GOOGLE_CLIENT_ID: 'test-client-id',
+        GOOGLE_CLIENT_SECRET: 'test-client-secret',
       },
     },
     {
