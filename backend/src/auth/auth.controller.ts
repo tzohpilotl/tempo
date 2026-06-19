@@ -14,10 +14,32 @@ import { AuthenticatedGuard } from './guards/authenticated.guard';
 import { CurrentUser } from '../common/current-user.decorator';
 import { User } from '../database/entities/user.entity';
 import { ProjectsService } from '../projects/projects.service';
+import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly authService: AuthService,
+  ) {}
+
+  /**
+   * GET /api/auth/test-login
+   * Creates a test session without OAuth. Only works when NODE_ENV=test.
+   * Used exclusively by Playwright e2e tests.
+   */
+  @Get('test-login')
+  async testLogin(@Req() req: Request, @Res() res: Response): Promise<void> {
+    if (process.env.NODE_ENV !== 'test') {
+      res.status(404).json({ message: 'Not found' });
+      return;
+    }
+    const user = await this.authService.findOrCreateTestUser();
+    await new Promise<void>((resolve, reject) =>
+      req.login(user, (err: unknown) => (err ? reject(err) : resolve())),
+    );
+    res.json({ ok: true });
+  }
 
   /**
    * GET /api/auth/google

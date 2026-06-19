@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { UserRepository } from '../database/repositories/user.repository';
 import { User } from '../database/entities/user.entity';
 
@@ -34,5 +34,20 @@ export class AuthService {
 
   async findById(userId: string): Promise<User | null> {
     return this.users.findById(userId);
+  }
+
+  // Only callable in NODE_ENV=test — used by the Playwright test-login endpoint.
+  async findOrCreateTestUser(): Promise<User> {
+    if (process.env.NODE_ENV !== 'test') {
+      throw new ForbiddenException('Test login is only available in test mode.');
+    }
+    const googleId = 'test-google-id-playwright';
+    const existing = await this.users.findByGoogleId(googleId);
+    if (existing) return existing;
+    return this.users.create({
+      google_id: googleId,
+      email: 'test@playwright.local',
+      display_name: 'Test User',
+    });
   }
 }
