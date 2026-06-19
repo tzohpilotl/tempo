@@ -6,5 +6,6 @@
 @media (max-width: 640px) {
   .root {
     flex-direction: column;
+    padding-bottom: 3.5rem;
   }
 }
