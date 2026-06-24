@@ -20,6 +20,11 @@ services:
     volumes:
       - sqlite_data:/app/data
     restart: unless-stopped
+    networks:
+      default:
+      droplet_proxy_network:
+        aliases:
+          - time-tracker-backend
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 15s
@@ -32,27 +37,22 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"   # HTTP/3 (QUIC)
-    environment:
-      # Caddy reads this to decide which domain to serve and get a TLS cert for.
-      # Set to your domain in .env. Use "localhost" for local Docker testing.
-      DOMAIN: ${DOMAIN:-localhost}
-    volumes:
-      - caddy_data:/data
-      - caddy_config:/config
-      - ./certs:/etc/caddy/certs:ro
     depends_on:
       backend:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      default:
+      droplet_proxy_network:
+        aliases:
+          - time-tracker-frontend
 
 volumes:
   sqlite_data:
     driver: local
-  caddy_data:
-    driver: local
-  caddy_config:
-    driver: local
+
+networks:
+  default: {}
+  droplet_proxy_network:
+    external: true
+    name: droplet_proxy_network
