@@ -1,0 +1,21 @@
+#!/bin/sh
+# Block pushes to main unless the version in frontend/package.json has been bumped.
+
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    remote_version=$(git show "origin/main:frontend/package.json" 2>/dev/null \
+      | grep '"version"' | head -1 \
+      | sed 's/.*"version": *"\([^"]*\)".*/\1/')
+    local_version=$(grep '"version"' frontend/package.json | head -1 \
+      | sed 's/.*"version": *"\([^"]*\)".*/\1/')
+
+    if [ -n "$remote_version" ] && [ "$remote_version" = "$local_version" ]; then
+      echo "Version bump required before pushing to main."
+      echo "  Current version: $local_version (same as origin/main)"
+      echo "  Run: cd frontend && npm version patch   # or minor / major"
+      exit 1
+    fi
+  fi
+done
+
+exit 0

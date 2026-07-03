@@ -94,6 +94,7 @@ export default function Sidebar({ user }: Props) {
           <LogoutIcon />
         </button>
       </div>
+      <div className={styles.version}>v{__APP_VERSION__}</div>
     </aside>
   );
 }

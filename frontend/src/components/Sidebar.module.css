@@ -151,6 +151,13 @@
   background: rgba(196, 52, 40, 0.08);
 }
 
+.version {
+  font-size: 0.65rem;
+  color: var(--text-faint);
+  padding-top: 0.5rem;
+  padding-left: 0.5rem;
+}
+
 /* ── Mobile: sidebar becomes a top navbar ── */
 
 @media (max-width: 640px) {
