@@ -43,7 +43,7 @@ export default function Timer({ projects, onEventLogged, onProjectCreated }: Pro
   useEffect(() => {
     if (running) {
       intervalRef.current = setInterval(() => {
-        setElapsed((prev) => prev + 1);
+        setElapsed(Math.floor((Date.now() - startedAtRef.current!.getTime()) / 1000));
       }, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
