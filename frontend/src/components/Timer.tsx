@@ -53,6 +53,15 @@ export default function Timer({ projects, onEventLogged, onProjectCreated }: Pro
     };
   }, [running]);
 
+  // Sync timer to browser tab title
+  useEffect(() => {
+    if (running) {
+      document.title = `${formatTime(elapsed)} — Tempo`;
+    } else {
+      document.title = 'Tempo';
+    }
+  }, [running, elapsed]);
+
   const handleStart = () => {
     startedAtRef.current = new Date();
     setElapsed(0);
