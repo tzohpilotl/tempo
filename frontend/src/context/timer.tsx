@@ -5,32 +5,63 @@ interface TimerContextValue {
   running: boolean;
   elapsed: number;
   startedAt: Date | null;
+  taskDescription: string;
+  selectedProjectId: string;
+  setTaskDescription: (v: string) => void;
+  setSelectedProjectId: (v: string) => void;
   start: () => void;
   stop: () => void;
 }
 
 const TimerContext = createContext<TimerContextValue | null>(null);
 
-const STORAGE_KEY = 'tempo_timer_started_at';
+const STORAGE_KEY = 'tempo_timer_session';
+
+interface StoredSession {
+  startedAt: string;
+  taskDescription: string;
+  selectedProjectId: string;
+}
 
 export function TimerProvider({ children }: { children: ReactNode }) {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [startedAt, setStartedAt] = useState<Date | null>(null);
+  const [taskDescription, setTaskDescription] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
   const startedAtRef = useRef<Date | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Restore a running timer that survived navigation or page refresh
+  // Restore a running session that survived navigation or page refresh
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const date = new Date(stored);
-      startedAtRef.current = date;
-      setStartedAt(date);
-      setElapsed(Math.floor((Date.now() - date.getTime()) / 1000));
-      setRunning(true);
+      try {
+        const data: StoredSession = JSON.parse(stored);
+        const date = new Date(data.startedAt);
+        startedAtRef.current = date;
+        setStartedAt(date);
+        setElapsed(Math.floor((Date.now() - date.getTime()) / 1000));
+        setTaskDescription(data.taskDescription ?? '');
+        setSelectedProjectId(data.selectedProjectId ?? '');
+        setRunning(true);
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
     }
   }, []);
+
+  // Persist session state whenever it changes
+  useEffect(() => {
+    if (running && startedAt) {
+      const session: StoredSession = {
+        startedAt: startedAt.toISOString(),
+        taskDescription,
+        selectedProjectId,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    }
+  }, [running, startedAt, taskDescription, selectedProjectId]);
 
   useEffect(() => {
     if (running) {
@@ -53,7 +84,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     const now = new Date();
     startedAtRef.current = now;
     setStartedAt(now);
-    localStorage.setItem(STORAGE_KEY, now.toISOString());
     setElapsed(0);
     setRunning(true);
   }
@@ -64,10 +94,22 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
     setRunning(false);
     setElapsed(0);
+    setTaskDescription('');
+    setSelectedProjectId('');
   }
 
   return (
-    <TimerContext.Provider value={{ running, elapsed, startedAt, start, stop }}>
+    <TimerContext.Provider value={{
+      running,
+      elapsed,
+      startedAt,
+      taskDescription,
+      selectedProjectId,
+      setTaskDescription,
+      setSelectedProjectId,
+      start,
+      stop,
+    }}>
       {children}
     </TimerContext.Provider>
   );

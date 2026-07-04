@@ -12,9 +12,9 @@ interface Props {
 }
 
 export default function Timer({ projects, onEventLogged, onProjectCreated }: Props) {
-  const { running, elapsed, startedAt, start, stop } = useTimer();
-  const [taskDescription, setTaskDescription] = useState('');
-  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const { running, elapsed, startedAt, start, stop,
+          taskDescription, setTaskDescription,
+          selectedProjectId, setSelectedProjectId } = useTimer();
   const [newProjectName, setNewProjectName] = useState('');
   const [showNewProject, setShowNewProject] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,8 +59,6 @@ export default function Timer({ projects, onEventLogged, onProjectCreated }: Pro
       });
 
       onEventLogged(event);
-      setTaskDescription('');
-      setSelectedProjectId('');
       setSaved(true);
       savedTimerRef.current = setTimeout(() => setSaved(false), 1500);
     } catch {
