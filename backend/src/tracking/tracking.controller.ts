@@ -2,7 +2,10 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
+  Param,
   Query,
   UseGuards,
   HttpCode,
@@ -10,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { TrackingService } from './tracking.service';
 import { CreateTrackingEventDto } from './dto/create-tracking-event.dto';
+import { UpdateTrackingEventDto } from './dto/update-tracking-event.dto';
 import {
   TrackingEventsPage,
   TrackingEventResponse,
@@ -79,5 +83,26 @@ export class TrackingController {
   ): Promise<TrackingEventResponse> {
     const event = await this.trackingService.create(user.user_id, dto);
     return toTrackingEventResponse(event);
+  }
+
+  /**
+   * PATCH /api/tracking/:id
+   * Updates a tracking event. Only fields present in the body are changed.
+   */
+  @Patch(':id')
+  async update(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: UpdateTrackingEventDto,
+  ): Promise<TrackingEventResponse> {
+    const event = await this.trackingService.update(user.user_id, id, dto);
+    return toTrackingEventResponse(event);
+  }
+
+  /** DELETE /api/tracking/:id */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  delete(@CurrentUser() user: User, @Param('id') id: string): Promise<void> {
+    return this.trackingService.delete(user.user_id, id);
   }
 }

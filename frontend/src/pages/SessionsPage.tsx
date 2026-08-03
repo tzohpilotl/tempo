@@ -48,6 +48,35 @@ export default function SessionsPage() {
     setPage(1);
   };
 
+  const refresh = () => {
+    setListLoading(true);
+    return Promise.all([
+      trackingApi
+        .list({ page, pageSize: PAGE_SIZE, projectId: projectFilter || undefined })
+        .then((result) => {
+          setEvents(result.data);
+          setTotalPages(result.totalPages);
+          setTotal(result.total);
+        }),
+      trackingApi.summary().then(setSummary),
+    ])
+      .catch(console.error)
+      .finally(() => setListLoading(false));
+  };
+
+  const handleUpdate = async (
+    eventId: string,
+    patch: { started_at: string; stopped_at: string; task_description?: string; project_id?: string },
+  ) => {
+    await trackingApi.update(eventId, patch);
+    await refresh();
+  };
+
+  const handleDelete = async (eventId: string) => {
+    await trackingApi.delete(eventId);
+    await refresh();
+  };
+
   return (
     <main className={styles.main}>
         <header className={styles.header}>
@@ -100,7 +129,13 @@ export default function SessionsPage() {
 
           {eventsOpen && (
             <div className={styles.eventsContent}>
-              <EventLog events={events} loading={listLoading} />
+              <EventLog
+                events={events}
+                loading={listLoading}
+                projects={projects}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+              />
 
               {!listLoading && totalPages > 1 && (
                 <nav className={styles.pagination} aria-label="Pagination">

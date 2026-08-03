@@ -1,12 +1,14 @@
 import {
   Injectable,
   BadRequestException,
+  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { TrackingEventRepository } from '../database/repositories/tracking-event.repository';
 import { ProjectRepository } from '../database/repositories/project.repository';
 import { TrackingEvent } from '../database/entities/tracking-event.entity';
 import { CreateTrackingEventDto } from './dto/create-tracking-event.dto';
+import { UpdateTrackingEventDto } from './dto/update-tracking-event.dto';
 import { TrackingTimeSummary } from './dto/tracking-event-response.dto';
 
 @Injectable()
@@ -84,11 +86,87 @@ export class TrackingService {
       }
     }
 
+    await this.assertNoOverlap(userId, started, stopped);
+
     return this.events.create({
       started_at: started,
       stopped_at: stopped,
       task_description: dto.task_description ?? null,
       project_id: dto.project_id ?? null,
     });
+  }
+
+  /**
+   * Updates a tracking event. Only fields present in the DTO are changed;
+   * omitted fields keep their existing value.
+   */
+  async update(
+    userId: string,
+    eventId: string,
+    dto: UpdateTrackingEventDto,
+  ): Promise<TrackingEvent> {
+    const event = await this.events.findByIdForUser(eventId, userId);
+    if (!event) {
+      throw new NotFoundException(`Tracking event with id "${eventId}" not found`);
+    }
+
+    const started_at = dto.started_at ? new Date(dto.started_at) : event.started_at;
+    const stopped_at = dto.stopped_at ? new Date(dto.stopped_at) : event.stopped_at;
+
+    if (stopped_at <= started_at) {
+      throw new BadRequestException('stopped_at must be after started_at');
+    }
+
+    const project_id = dto.project_id !== undefined ? dto.project_id : event.project_id;
+
+    if (project_id) {
+      const project = await this.projects.findById(project_id);
+      if (!project || project.user_id !== userId) {
+        throw new NotFoundException(`Project with id "${project_id}" not found`);
+      }
+    }
+
+    await this.assertNoOverlap(userId, started_at, stopped_at, eventId);
+
+    return this.events.update(eventId, {
+      started_at,
+      stopped_at,
+      task_description:
+        dto.task_description !== undefined ? dto.task_description : event.task_description,
+      project_id,
+    });
+  }
+
+  async delete(userId: string, eventId: string): Promise<void> {
+    const event = await this.events.findByIdForUser(eventId, userId);
+    if (!event) {
+      throw new NotFoundException(`Tracking event with id "${eventId}" not found`);
+    }
+    await this.events.delete(eventId);
+  }
+
+  /**
+   * A person can only work one session at a time, so overlapping events
+   * would double-count time in the summary. Rejects [startedAt, stoppedAt)
+   * if it overlaps any other event of this user's; touching intervals
+   * (one ending exactly when another starts) are allowed.
+   */
+  private async assertNoOverlap(
+    userId: string,
+    startedAt: Date,
+    stoppedAt: Date,
+    excludeEventId?: string,
+  ): Promise<void> {
+    const overlap = await this.events.findOverlapping(
+      userId,
+      startedAt,
+      stoppedAt,
+      excludeEventId,
+    );
+    if (overlap) {
+      throw new ConflictException(
+        `This session overlaps an existing one (${overlap.started_at.toISOString()} – ${overlap.stopped_at.toISOString()})`,
+      );
+    }
   }
 }

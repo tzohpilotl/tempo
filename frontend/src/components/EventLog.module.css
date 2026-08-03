@@ -108,5 +108,115 @@
   font-weight: 500;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+.itemRight {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   margin-left: 1rem;
+}
+
+.itemActions {
+  display: flex;
+  gap: 0.2rem;
+  opacity: 0;
+  transition: opacity 0.15s var(--ease);
+}
+
+.item:hover .itemActions {
+  opacity: 1;
+}
+
+.iconBtn {
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.3rem;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.iconBtn:hover {
+  background: var(--bg-raised);
+  color: var(--text);
+}
+
+.itemEditing {
+  display: block;
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.editInput {
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--text);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  padding: 0.4rem 0.55rem;
+  width: 100%;
+}
+
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editRow .editInput {
+  width: auto;
+  flex: 1;
+}
+
+.editArrow {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.editError {
+  color: var(--danger);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.cancelBtn,
+.saveBtn {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+}
+
+.cancelBtn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.saveBtn {
+  border: none;
+  background: var(--accent);
+  color: var(--btn-accent-fg);
+}
+
+.saveBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }

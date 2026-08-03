@@ -35,6 +35,46 @@ export class TrackingEventRepository implements ITrackingEventRepository {
       .getMany();
   }
 
+  /**
+   * Same ownership rule as findAllByUser (see note above), scoped to a
+   * single event — used by update/delete to confirm the caller may act on it.
+   */
+  findByIdForUser(eventId: string, userId: string): Promise<TrackingEvent | null> {
+    return this.orm
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.project', 'project')
+      .where('event.tracking_event_id = :eventId', { eventId })
+      .andWhere('(project.user_id = :userId OR event.project_id IS NULL)', { userId })
+      .getOne();
+  }
+
+  /**
+   * Finds an existing event for this user whose interval overlaps
+   * [startedAt, stoppedAt). Intervals that merely touch (one's stopped_at
+   * equals the other's started_at) do not count as overlapping.
+   * Pass excludeEventId when checking an update, so the event being
+   * edited doesn't collide with itself.
+   */
+  findOverlapping(
+    userId: string,
+    startedAt: Date,
+    stoppedAt: Date,
+    excludeEventId?: string,
+  ): Promise<TrackingEvent | null> {
+    const qb = this.orm
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.project', 'project')
+      .where('(project.user_id = :userId OR event.project_id IS NULL)', { userId })
+      .andWhere('event.started_at < :stoppedAt', { stoppedAt })
+      .andWhere('event.stopped_at > :startedAt', { startedAt });
+
+    if (excludeEventId) {
+      qb.andWhere('event.tracking_event_id != :excludeEventId', { excludeEventId });
+    }
+
+    return qb.getOne();
+  }
+
   async getSummaryByProject(
     userId: string,
   ): Promise<Array<{ project_id: string | null; name: string | null; total_seconds: number }>> {
@@ -101,5 +141,25 @@ export class TrackingEventRepository implements ITrackingEventRepository {
       where: { tracking_event_id: saved.tracking_event_id },
       relations: { project: true },
     });
+  }
+
+  async update(
+    eventId: string,
+    data: {
+      started_at: Date;
+      stopped_at: Date;
+      task_description: string | null;
+      project_id: string | null;
+    },
+  ): Promise<TrackingEvent> {
+    await this.orm.update({ tracking_event_id: eventId }, data);
+    return this.orm.findOneOrFail({
+      where: { tracking_event_id: eventId },
+      relations: { project: true },
+    });
+  }
+
+  async delete(eventId: string): Promise<void> {
+    await this.orm.delete({ tracking_event_id: eventId });
   }
 }

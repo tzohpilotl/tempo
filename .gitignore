@@ -2,6 +2,7 @@ certs/
 node_modules
 dist
 .env
+TODO.org
 *.sqlite
 phase_1
 phase_2

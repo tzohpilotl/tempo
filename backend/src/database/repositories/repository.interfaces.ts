@@ -35,10 +35,27 @@ export interface IProjectRepository {
 
 export interface ITrackingEventRepository {
   findAllByUser(userId: string): Promise<TrackingEvent[]>;
+  findByIdForUser(eventId: string, userId: string): Promise<TrackingEvent | null>;
+  findOverlapping(
+    userId: string,
+    startedAt: Date,
+    stoppedAt: Date,
+    excludeEventId?: string,
+  ): Promise<TrackingEvent | null>;
   create(data: {
     started_at: Date;
     stopped_at: Date;
     task_description?: string | null;
     project_id?: string | null;
   }): Promise<TrackingEvent>;
+  update(
+    eventId: string,
+    data: {
+      started_at: Date;
+      stopped_at: Date;
+      task_description: string | null;
+      project_id: string | null;
+    },
+  ): Promise<TrackingEvent>;
+  delete(eventId: string): Promise<void>;
 }

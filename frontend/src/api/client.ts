@@ -90,4 +90,21 @@ export const tracking = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+
+  update: (
+    eventId: string,
+    payload: {
+      started_at?: string;
+      stopped_at?: string;
+      task_description?: string;
+      project_id?: string;
+    },
+  ) =>
+    request<TrackingEvent>(`/tracking/${eventId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  delete: (eventId: string) =>
+    request<void>(`/tracking/${eventId}`, { method: "DELETE" }),
 };

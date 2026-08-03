@@ -20,6 +20,22 @@ export default function DashboardPage() {
       .finally(() => setDataLoading(false));
   }, []);
 
+  const refreshEvents = () =>
+    trackingApi.list({ pageSize: 10 }).then((page) => setEvents(page.data));
+
+  const handleUpdate = async (
+    eventId: string,
+    patch: { started_at: string; stopped_at: string; task_description?: string; project_id?: string },
+  ) => {
+    await trackingApi.update(eventId, patch);
+    await refreshEvents();
+  };
+
+  const handleDelete = async (eventId: string) => {
+    await trackingApi.delete(eventId);
+    await refreshEvents();
+  };
+
   return (
     <main className={styles.main}>
       <section className={styles.timerSection}>
@@ -35,7 +51,13 @@ export default function DashboardPage() {
       </section>
 
       <section className={styles.logSection}>
-        <EventLog events={events} loading={dataLoading} />
+        <EventLog
+          events={events}
+          loading={dataLoading}
+          projects={projects}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+        />
       </section>
     </main>
   );
