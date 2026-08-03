@@ -5,13 +5,15 @@ import EventLog from '../components/EventLog';
 import type { Project, TrackingEvent } from '../types';
 import styles from './DashboardPage.module.css';
 
+const DASHBOARD_EVENT_LIMIT = 5;
+
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [events, setEvents] = useState<TrackingEvent[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([projectsApi.list(), trackingApi.list({ pageSize: 10 })])
+    Promise.all([projectsApi.list(), trackingApi.list({ pageSize: DASHBOARD_EVENT_LIMIT })])
       .then(([p, page]) => {
         setProjects(p);
         setEvents(page.data);
@@ -21,7 +23,7 @@ export default function DashboardPage() {
   }, []);
 
   const refreshEvents = () =>
-    trackingApi.list({ pageSize: 10 }).then((page) => setEvents(page.data));
+    trackingApi.list({ pageSize: DASHBOARD_EVENT_LIMIT }).then((page) => setEvents(page.data));
 
   const handleUpdate = async (
     eventId: string,
@@ -42,7 +44,7 @@ export default function DashboardPage() {
         <Timer
           projects={projects}
           onEventLogged={(event) =>
-            setEvents((prev) => [event, ...prev].slice(0, 10))
+            setEvents((prev) => [event, ...prev].slice(0, DASHBOARD_EVENT_LIMIT))
           }
           onProjectCreated={(project) =>
             setProjects((prev) => [project, ...prev])
