@@ -19,7 +19,7 @@ export default function SessionsPage() {
   const [projectFilter, setProjectFilter] = useState('');
   const [listLoading, setListLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(true);
-  const [eventsOpen, setEventsOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(true);
 
   useEffect(() => {
     projectsApi.list().then(setProjects).catch(console.error);
@@ -135,6 +135,7 @@ export default function SessionsPage() {
                 projects={projects}
                 onUpdate={handleUpdate}
                 onDelete={handleDelete}
+                detailed
               />
 
               {!listLoading && totalPages > 1 && (

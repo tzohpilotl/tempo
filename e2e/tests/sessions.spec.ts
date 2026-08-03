@@ -17,11 +17,9 @@ test('starting and stopping the timer logs a session', async ({ page }) => {
   // Timer resets to idle once the session is saved
   await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible({ timeout: 5000 });
 
-  // Navigate to Sessions and expand the collapsible sessions drawer
+  // Navigate to Sessions — the events drawer is expanded by default
   await page.getByRole('button', { name: 'Sessions' }).click();
   await expect(page).toHaveURL('/sessions');
-
-  await page.locator('button[aria-expanded="false"]').click();
 
   // The saved task description should appear in the list
   await expect(page.getByText('E2E test session')).toBeVisible({ timeout: 5000 });
@@ -38,7 +36,6 @@ test('editing and deleting a session', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Sessions' }).click();
   await expect(page).toHaveURL('/sessions');
-  await page.locator('button[aria-expanded="false"]').click();
 
   const item = page.getByText('Editable session').locator('..').locator('..');
   await item.getByRole('button', { name: 'Edit session' }).click();
@@ -105,7 +102,6 @@ test('editing a session to overlap another is rejected', async ({ page }) => {
   expect(second.ok()).toBeTruthy();
 
   await page.goto('/sessions');
-  await page.locator('button[aria-expanded="false"]').click();
 
   const item = page.getByText('Movable session').locator('..').locator('..');
   await item.getByRole('button', { name: 'Edit session' }).click();

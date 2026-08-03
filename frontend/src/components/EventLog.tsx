@@ -12,6 +12,8 @@ interface Props {
     patch: { started_at: string; stopped_at: string; task_description?: string; project_id?: string },
   ) => Promise<void>;
   onDelete: (eventId: string) => Promise<void>;
+  /** Shows the full date and the start–end time range instead of the compact "Today · 2:15 PM" form. */
+  detailed?: boolean;
 }
 
 function formatDuration(seconds: number): string {
@@ -39,6 +41,16 @@ function formatDate(isoString: string): string {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ` · ${timeStr}`;
 }
 
+/** Full date plus the start–end time range, e.g. "Aug 3, 2026 · 2:15 PM – 3:40 PM". */
+function formatDateRange(startedAtIso: string, stoppedAtIso: string): string {
+  const start = new Date(startedAtIso);
+  const stop = new Date(stoppedAtIso);
+  const dateStr = start.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  const startStr = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const stopStr = stop.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${dateStr} · ${startStr} – ${stopStr}`;
+}
+
 /** Converts an ISO string to the local `datetime-local` input format (YYYY-MM-DDTHH:mm:ss). */
 function toDateTimeLocal(isoString: string): string {
   const date = new Date(isoString);
@@ -53,7 +65,7 @@ interface EditState {
   stopped_at: string;
 }
 
-export default function EventLog({ events, loading, projects, onUpdate, onDelete }: Props) {
+export default function EventLog({ events, loading, projects, onUpdate, onDelete, detailed = false }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<EditState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -214,7 +226,11 @@ export default function EventLog({ events, loading, projects, onUpdate, onDelete
                       <span className={styles.metaDot}>·</span>
                     </>
                   )}
-                  <span className={styles.metaDate}>{formatDate(event.started_at)}</span>
+                  <span className={styles.metaDate}>
+                    {detailed
+                      ? formatDateRange(event.started_at, event.stopped_at)
+                      : formatDate(event.started_at)}
+                  </span>
                 </div>
               </div>
 
