@@ -6,6 +6,8 @@ const { version } = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
 );
 
+const backendPort = process.env.BACKEND_PORT ?? '3000';
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(version),
@@ -14,7 +16,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: `http://localhost:${backendPort}`,
         changeOrigin: true,
       },
     },
