@@ -1,9 +1,43 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 
 /** Formats a Date as the local `datetime-local` input value (YYYY-MM-DDTHH:mm:ss). */
 function toLocalInputValue(date: Date): string {
   const offsetMs = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 19);
+}
+
+/**
+ * A random point far in the past so a synthetic session's time window can't
+ * collide with real-time sessions from other tests — or, on retry, with
+ * leftover events from a previous failed attempt of the *same* test (whose
+ * "now" would otherwise be only seconds away from this run's "now").
+ */
+function randomPastAnchor(): number {
+  const oneDayMs = 24 * 60 * 60_000;
+  return Date.now() - oneDayMs - Math.random() * 365 * oneDayMs;
+}
+
+/**
+ * locator.fill() on `datetime-local` inputs is brittle across Chromium
+ * versions (throws "Malformed value" even for well-formed strings in some
+ * environments) — set the value directly instead.
+ *
+ * React overrides the native `value` setter on input elements to track
+ * changes, so a plain `el.value = v` gets silently absorbed by React's
+ * tracker before the dispatched event fires and onChange never runs. Calling
+ * the native prototype setter first bypasses that override, so React sees a
+ * real mismatch when the `input` event arrives and fires onChange as usual.
+ */
+async function setDateTimeLocal(locator: Locator, value: string): Promise<void> {
+  await locator.evaluate((el: HTMLInputElement, v: string) => {
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value',
+    )!.set!;
+    nativeSetter.call(el, v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
 }
 
 test('starting and stopping the timer logs a session', async ({ page }) => {
@@ -16,6 +50,10 @@ test('starting and stopping the timer logs a session', async ({ page }) => {
 
   // Timer resets to idle once the session is saved
   await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible({ timeout: 5000 });
+
+  // Sessions can no longer overlap, so leave a real-time gap before whichever
+  // test runs next also logs a session via the Timer.
+  await page.waitForTimeout(1200);
 
   // Navigate to Sessions — the events drawer is expanded by default
   await page.getByRole('button', { name: 'Sessions' }).click();
@@ -33,6 +71,10 @@ test('editing and deleting a session', async ({ page }) => {
   await page.waitForTimeout(1100);
   await page.getByRole('button', { name: 'Stop timer' }).click();
   await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible({ timeout: 5000 });
+
+  // Sessions can no longer overlap, so leave a real-time gap before whichever
+  // test runs next also logs a session via the Timer.
+  await page.waitForTimeout(1200);
 
   await page.getByRole('button', { name: 'Sessions' }).click();
   await expect(page).toHaveURL('/sessions');
@@ -56,9 +98,7 @@ test('editing and deleting a session', async ({ page }) => {
 test('creating an overlapping session via the API is rejected', async ({ page }) => {
   await page.goto('/dashboard');
 
-  // Anchored well in the past so this synthetic window can't collide with
-  // real-time sessions created by other tests in this run.
-  const now = Date.now() - 24 * 60 * 60_000;
+  const now = randomPastAnchor();
   const base = await page.request.post('/api/tracking', {
     data: {
       started_at: new Date(now).toISOString(),
@@ -81,8 +121,7 @@ test('creating an overlapping session via the API is rejected', async ({ page })
 test('editing a session to overlap another is rejected', async ({ page }) => {
   await page.goto('/dashboard');
 
-  // A different anchor than the previous test, still well clear of real time.
-  const now = Date.now() - 48 * 60 * 60_000;
+  const now = randomPastAnchor();
   const first = await page.request.post('/api/tracking', {
     data: {
       started_at: new Date(now).toISOString(),
@@ -108,7 +147,7 @@ test('editing a session to overlap another is rejected', async ({ page }) => {
 
   // Drag "Movable session" back so it starts inside "Fixed session"'s interval.
   const overlappingStart = toLocalInputValue(new Date(now + 30_000));
-  await page.locator('input[type="datetime-local"]').first().fill(overlappingStart);
+  await setDateTimeLocal(page.locator('input[type="datetime-local"]').first(), overlappingStart);
   await page.getByRole('button', { name: 'Save' }).click();
 
   await expect(page.getByText(/overlaps an existing one/i)).toBeVisible({ timeout: 5000 });

@@ -15,6 +15,10 @@ test('creating a new project via the timer flow', async ({ page }) => {
   // The timer resets to idle after saving
   await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible({ timeout: 5000 });
 
+  // Sessions can no longer overlap, so leave a real-time gap before whichever
+  // test runs next also logs a session via the Timer.
+  await page.waitForTimeout(1200);
+
   // Navigate to Projects and confirm the new project is listed.
   // Wait for the h1 heading before checking the list — the URL changes before
   // React finishes unmounting DashboardPage, so the Timer <select> and EventLog
