@@ -32,6 +32,13 @@ export interface TrackingTimeSummary {
   total_seconds: number;
 }
 
+export interface TrackingSummaryResponse {
+  allTime: TrackingTimeSummary;
+  day: TrackingTimeSummary;
+  week: TrackingTimeSummary;
+  month: TrackingTimeSummary;
+}
+
 export interface TrackingEventsPage {
   data: TrackingEvent[];
   total: number;

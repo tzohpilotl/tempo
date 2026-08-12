@@ -10,6 +10,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { TrackingService } from './tracking.service';
 import { CreateTrackingEventDto } from './dto/create-tracking-event.dto';
@@ -17,7 +18,7 @@ import { UpdateTrackingEventDto } from './dto/update-tracking-event.dto';
 import {
   TrackingEventsPage,
   TrackingEventResponse,
-  TrackingTimeSummary,
+  TrackingSummaryResponse,
   toTrackingEventResponse,
 } from './dto/tracking-event-response.dto';
 import { AuthenticatedGuard } from '../auth/guards/authenticated.guard';
@@ -29,10 +30,33 @@ import { User } from '../database/entities/user.entity';
 export class TrackingController {
   constructor(private readonly trackingService: TrackingService) {}
 
-  /** GET /api/tracking/summary — total time grouped by project for the logged-in user. */
+  /**
+   * GET /api/tracking/summary?dayFrom=&dayTo=&weekFrom=&weekTo=&monthFrom=&monthTo=
+   * Total time grouped by project for the logged-in user, broken down for
+   * all-time plus the three caller-supplied periods. Boundaries are computed
+   * client-side (in the browser's local timezone, since the server has no
+   * notion of the user's timezone) and passed in as ISO timestamps.
+   */
   @Get('summary')
-  getSummary(@CurrentUser() user: User): Promise<TrackingTimeSummary> {
-    return this.trackingService.getSummaryForUser(user.user_id);
+  getSummary(
+    @CurrentUser() user: User,
+    @Query('dayFrom') dayFrom?: string,
+    @Query('dayTo') dayTo?: string,
+    @Query('weekFrom') weekFrom?: string,
+    @Query('weekTo') weekTo?: string,
+    @Query('monthFrom') monthFrom?: string,
+    @Query('monthTo') monthTo?: string,
+  ): Promise<TrackingSummaryResponse> {
+    if (!dayFrom || !dayTo || !weekFrom || !weekTo || !monthFrom || !monthTo) {
+      throw new BadRequestException(
+        'dayFrom, dayTo, weekFrom, weekTo, monthFrom and monthTo are all required',
+      );
+    }
+    return this.trackingService.getSummaryForUser(user.user_id, {
+      day: { from: new Date(dayFrom), to: new Date(dayTo) },
+      week: { from: new Date(weekFrom), to: new Date(weekTo) },
+      month: { from: new Date(monthFrom), to: new Date(monthTo) },
+    });
   }
 
   /**

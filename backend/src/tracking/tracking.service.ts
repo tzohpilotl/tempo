@@ -4,12 +4,18 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { TrackingEventRepository } from '../database/repositories/tracking-event.repository';
+import {
+  TrackingEventRepository,
+  DateRange,
+} from '../database/repositories/tracking-event.repository';
 import { ProjectRepository } from '../database/repositories/project.repository';
 import { TrackingEvent } from '../database/entities/tracking-event.entity';
 import { CreateTrackingEventDto } from './dto/create-tracking-event.dto';
 import { UpdateTrackingEventDto } from './dto/update-tracking-event.dto';
-import { TrackingTimeSummary } from './dto/tracking-event-response.dto';
+import {
+  TrackingTimeSummary,
+  TrackingSummaryResponse,
+} from './dto/tracking-event-response.dto';
 
 @Injectable()
 export class TrackingService {
@@ -26,16 +32,32 @@ export class TrackingService {
     return this.events.findAllByUser(userId);
   }
 
-  async getSummaryForUser(userId: string): Promise<TrackingTimeSummary> {
-    const rows = await this.events.getSummaryByProject(userId);
-    const total_seconds = rows.reduce((sum, r) => sum + Number(r.total_seconds), 0);
+  async getSummaryForUser(
+    userId: string,
+    ranges: { day: DateRange; week: DateRange; month: DateRange },
+  ): Promise<TrackingSummaryResponse> {
+    const rows = await this.events.getSummaryByProject(userId, ranges);
+
+    const buildSummary = (
+      field: 'total_seconds' | 'day_seconds' | 'week_seconds' | 'month_seconds',
+    ): TrackingTimeSummary => {
+      const breakdown = rows
+        .filter((r) => Number(r[field]) > 0)
+        .map((r) => ({
+          project_id: r.project_id ?? null,
+          name: r.name ?? null,
+          total_seconds: Number(r[field]),
+        }))
+        .sort((a, b) => b.total_seconds - a.total_seconds);
+      const total_seconds = breakdown.reduce((sum, r) => sum + r.total_seconds, 0);
+      return { breakdown, total_seconds };
+    };
+
     return {
-      breakdown: rows.map((r) => ({
-        project_id: r.project_id ?? null,
-        name: r.name ?? null,
-        total_seconds: Number(r.total_seconds),
-      })),
-      total_seconds,
+      allTime: buildSummary('total_seconds'),
+      day: buildSummary('day_seconds'),
+      week: buildSummary('week_seconds'),
+      month: buildSummary('month_seconds'),
     };
   }
 

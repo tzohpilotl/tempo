@@ -4,6 +4,11 @@ import { Repository } from 'typeorm';
 import { TrackingEvent } from '../entities/tracking-event.entity';
 import { ITrackingEventRepository } from './repository.interfaces';
 
+export interface DateRange {
+  from: Date;
+  to: Date;
+}
+
 @Injectable()
 export class TrackingEventRepository implements ITrackingEventRepository {
   constructor(
@@ -77,17 +82,40 @@ export class TrackingEventRepository implements ITrackingEventRepository {
 
   async getSummaryByProject(
     userId: string,
-  ): Promise<Array<{ project_id: string | null; name: string | null; total_seconds: number }>> {
+    ranges: { day: DateRange; week: DateRange; month: DateRange },
+  ): Promise<
+    Array<{
+      project_id: string | null;
+      name: string | null;
+      total_seconds: number;
+      day_seconds: number;
+      week_seconds: number;
+      month_seconds: number;
+    }>
+  > {
+    const durationExpr =
+      '(julianday(event.stopped_at) - julianday(event.started_at)) * 86400';
+    const inRangeSum = (from: string, to: string) =>
+      `CAST(SUM(CASE WHEN event.started_at < :${to} AND event.stopped_at > :${from} THEN ${durationExpr} ELSE 0 END) AS INTEGER)`;
+
     return this.orm
       .createQueryBuilder('event')
       .leftJoin('event.project', 'project')
       .select('event.project_id', 'project_id')
       .addSelect('project.name', 'name')
-      .addSelect(
-        `CAST(SUM((julianday(event.stopped_at) - julianday(event.started_at)) * 86400) AS INTEGER)`,
-        'total_seconds',
-      )
+      .addSelect(`CAST(SUM(${durationExpr}) AS INTEGER)`, 'total_seconds')
+      .addSelect(inRangeSum('dayFrom', 'dayTo'), 'day_seconds')
+      .addSelect(inRangeSum('weekFrom', 'weekTo'), 'week_seconds')
+      .addSelect(inRangeSum('monthFrom', 'monthTo'), 'month_seconds')
       .where('(project.user_id = :userId OR event.project_id IS NULL)', { userId })
+      .setParameters({
+        dayFrom: ranges.day.from,
+        dayTo: ranges.day.to,
+        weekFrom: ranges.week.from,
+        weekTo: ranges.week.to,
+        monthFrom: ranges.month.from,
+        monthTo: ranges.month.to,
+      })
       .groupBy('event.project_id')
       .orderBy('total_seconds', 'DESC')
       .getRawMany();

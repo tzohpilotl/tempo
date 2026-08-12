@@ -1,4 +1,5 @@
-import type { User, Project, ProjectStats, TrackingEvent, TrackingEventsPage, TrackingTimeSummary } from "../types";
+import type { User, Project, ProjectStats, TrackingEvent, TrackingEventsPage, TrackingSummaryResponse } from "../types";
+import type { DateRange } from "../utils/dateRange";
 
 const BASE = "/api";
 
@@ -78,7 +79,17 @@ export const tracking = {
     return request<TrackingEventsPage>(`/tracking${query ? "?" + query : ""}`);
   },
 
-  summary: () => request<TrackingTimeSummary>("/tracking/summary"),
+  summary: (ranges: { day: DateRange; week: DateRange; month: DateRange }) => {
+    const qs = new URLSearchParams({
+      dayFrom: ranges.day.from,
+      dayTo: ranges.day.to,
+      weekFrom: ranges.week.from,
+      weekTo: ranges.week.to,
+      monthFrom: ranges.month.from,
+      monthTo: ranges.month.to,
+    });
+    return request<TrackingSummaryResponse>(`/tracking/summary?${qs.toString()}`);
+  },
 
   log: (payload: {
     started_at: string;

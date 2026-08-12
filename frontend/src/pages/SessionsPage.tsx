@@ -2,17 +2,34 @@ import { useState, useEffect } from 'react';
 import { projects as projectsApi, tracking as trackingApi } from '../api/client';
 import EventLog from '../components/EventLog';
 import PieChart from '../components/PieChart';
-import type { Project, TrackingEvent, TrackingTimeSummary } from '../types';
+import type { Project, TrackingEvent, TrackingSummaryResponse } from '../types';
 import { logError } from '../utils/logger';
+import { getDayRange, getWeekRange, getMonthRange } from '../utils/dateRange';
 import styles from './SessionsPage.module.css';
 
 const PAGE_SIZE = 20;
 
-const EMPTY_SUMMARY: TrackingTimeSummary = { breakdown: [], total_seconds: 0 };
+const EMPTY_TIME_SUMMARY = { breakdown: [], total_seconds: 0 };
+const EMPTY_SUMMARIES: TrackingSummaryResponse = {
+  allTime: EMPTY_TIME_SUMMARY,
+  day: EMPTY_TIME_SUMMARY,
+  week: EMPTY_TIME_SUMMARY,
+  month: EMPTY_TIME_SUMMARY,
+};
+
+const CHART_LABELS: Array<{ key: keyof TrackingSummaryResponse; label: string }> = [
+  { key: 'allTime', label: 'All time' },
+  { key: 'day', label: 'Today' },
+  { key: 'week', label: 'This week' },
+  { key: 'month', label: 'This month' },
+];
+
+const fetchSummary = () =>
+  trackingApi.summary({ day: getDayRange(), week: getWeekRange(), month: getMonthRange() });
 
 export default function SessionsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [summary, setSummary] = useState<TrackingTimeSummary>(EMPTY_SUMMARY);
+  const [summaries, setSummaries] = useState<TrackingSummaryResponse>(EMPTY_SUMMARIES);
   const [events, setEvents] = useState<TrackingEvent[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -24,9 +41,8 @@ export default function SessionsPage() {
 
   useEffect(() => {
     projectsApi.list().then(setProjects).catch(logError);
-    trackingApi
-      .summary()
-      .then(setSummary)
+    fetchSummary()
+      .then(setSummaries)
       .catch(logError)
       .finally(() => setChartLoading(false));
   }, []);
@@ -59,7 +75,7 @@ export default function SessionsPage() {
           setTotalPages(result.totalPages);
           setTotal(result.total);
         }),
-      trackingApi.summary().then(setSummary),
+      fetchSummary().then(setSummaries),
     ])
       .catch(logError)
       .finally(() => setListLoading(false));
@@ -74,7 +90,7 @@ export default function SessionsPage() {
       prev.map((e) => (e.tracking_event_id === updated.tracking_event_id ? updated : e)),
     );
     // The event itself is already updated locally — only the aggregates need refetching.
-    await trackingApi.summary().then(setSummary).catch(logError);
+    await fetchSummary().then(setSummaries).catch(logError);
   };
 
   const handleDelete = async (eventId: string) => {
@@ -88,13 +104,18 @@ export default function SessionsPage() {
           <h1 className={styles.title}>Sessions</h1>
         </header>
 
-        {/* ── Pie chart — main focus of the page ── */}
+        {/* ── Pie charts — main focus of the page ── */}
         <section className={styles.chartSection}>
-          {chartLoading ? (
-            <div className={styles.chartPlaceholder} />
-          ) : (
-            <PieChart summary={summary} />
-          )}
+          {CHART_LABELS.map(({ key, label }) => (
+            <div key={key} className={styles.chartCard}>
+              <h2 className={styles.chartCardTitle}>{label}</h2>
+              {chartLoading ? (
+                <div className={styles.chartPlaceholder} />
+              ) : (
+                <PieChart summary={summaries[key]} />
+              )}
+            </div>
+          ))}
         </section>
 
         {/* ── Foldable events list ── */}
