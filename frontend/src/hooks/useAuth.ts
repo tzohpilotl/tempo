@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import * as Sentry from "@sentry/react";
 import { auth, ApiError } from "../api/client";
+import { logError } from "../utils/logger";
 import type { User } from "../types";
 
 interface AuthState {
@@ -26,7 +26,7 @@ export function useAuth(): AuthState {
         if (err instanceof ApiError && err.status === 401) {
           setUnauthenticated(true);
         } else {
-          Sentry.captureException(err);
+          logError(err);
           setError(
             err instanceof Error ? err : new Error("Failed to verify session"),
           );

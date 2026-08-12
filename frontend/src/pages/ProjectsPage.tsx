@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { projects as projectsApi } from '../api/client';
 import type { ProjectStats } from '../types';
 import { capitalize } from '../utils/text';
+import { logError } from '../utils/logger';
 import styles from './ProjectsPage.module.css';
 
 export default function ProjectsPage() {
@@ -18,7 +19,7 @@ export default function ProjectsPage() {
     projectsApi
       .stats()
       .then(setStats)
-      .catch(console.error)
+      .catch(logError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -48,6 +49,7 @@ export default function ProjectsPage() {
       );
       setEditingId(null);
     } catch (err: unknown) {
+      logError(err);
       const msg = err instanceof Error ? err.message : 'Failed to save';
       setEditError(msg);
     } finally {
@@ -60,7 +62,7 @@ export default function ProjectsPage() {
       await projectsApi.delete(projectId);
       setStats((prev) => prev.filter((p) => p.project_id !== projectId));
     } catch (err) {
-      console.error(err);
+      logError(err);
     } finally {
       setDeletingId(null);
     }

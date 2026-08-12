@@ -3,6 +3,7 @@ import { projects as projectsApi, tracking as trackingApi } from '../api/client'
 import EventLog from '../components/EventLog';
 import PieChart from '../components/PieChart';
 import type { Project, TrackingEvent, TrackingTimeSummary } from '../types';
+import { logError } from '../utils/logger';
 import styles from './SessionsPage.module.css';
 
 const PAGE_SIZE = 20;
@@ -22,11 +23,11 @@ export default function SessionsPage() {
   const [eventsOpen, setEventsOpen] = useState(true);
 
   useEffect(() => {
-    projectsApi.list().then(setProjects).catch(console.error);
+    projectsApi.list().then(setProjects).catch(logError);
     trackingApi
       .summary()
       .then(setSummary)
-      .catch(console.error)
+      .catch(logError)
       .finally(() => setChartLoading(false));
   }, []);
 
@@ -39,7 +40,7 @@ export default function SessionsPage() {
         setTotalPages(result.totalPages);
         setTotal(result.total);
       })
-      .catch(console.error)
+      .catch(logError)
       .finally(() => setListLoading(false));
   }, [page, projectFilter]);
 
@@ -60,7 +61,7 @@ export default function SessionsPage() {
         }),
       trackingApi.summary().then(setSummary),
     ])
-      .catch(console.error)
+      .catch(logError)
       .finally(() => setListLoading(false));
   };
 

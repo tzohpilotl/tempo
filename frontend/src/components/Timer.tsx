@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { tracking, projects as projectsApi } from '../api/client';
 import type { Project, TrackingEvent } from '../types';
 import { capitalize, formatTime } from '../utils/text';
+import { logError } from '../utils/logger';
 import { useTimer } from '../context/timer';
 import styles from './Timer.module.css';
 
@@ -61,7 +62,8 @@ export default function Timer({ projects, onEventLogged, onProjectCreated }: Pro
       onEventLogged(event);
       setSaved(true);
       savedTimerRef.current = setTimeout(() => setSaved(false), 1500);
-    } catch {
+    } catch (err) {
+      logError(err);
       setError('Failed to save the session. Please try again.');
     } finally {
       setSaving(false);

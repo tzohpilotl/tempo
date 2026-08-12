@@ -10,6 +10,14 @@ if (import.meta.env.PROD) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <Sentry.ErrorBoundary
+      fallback={
+        <div role="alert" style={{ padding: '2rem', textAlign: 'center' }}>
+          Something went wrong. Please reload the page.
+        </div>
+      }
+    >
+      <App />
+    </Sentry.ErrorBoundary>
   </React.StrictMode>,
 );

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projects as projectsApi } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
+import { logError } from '../utils/logger';
 import styles from './OnboardingPage.module.css';
 
 export default function OnboardingPage() {
@@ -24,7 +25,8 @@ export default function OnboardingPage() {
     try {
       await projectsApi.create(name.trim());
       navigate('/dashboard', { replace: true });
-    } catch {
+    } catch (err) {
+      logError(err);
       setError('Could not create project. Please try again.');
       setSubmitting(false);
     }

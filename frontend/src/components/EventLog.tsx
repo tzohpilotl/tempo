@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Project, TrackingEvent } from '../types';
 import { capitalize } from '../utils/text';
+import { logError } from '../utils/logger';
 import styles from './EventLog.module.css';
 
 interface Props {
@@ -102,6 +103,7 @@ export default function EventLog({ events, loading, projects, onUpdate, onDelete
       setEditingId(null);
       setForm(null);
     } catch (err) {
+      logError(err);
       setError(err instanceof Error ? err.message : 'Failed to save changes');
     } finally {
       setSaving(false);

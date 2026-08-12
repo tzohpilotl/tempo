@@ -3,6 +3,7 @@ import { projects as projectsApi, tracking as trackingApi } from '../api/client'
 import Timer from '../components/Timer';
 import EventLog from '../components/EventLog';
 import type { Project, TrackingEvent } from '../types';
+import { logError } from '../utils/logger';
 import styles from './DashboardPage.module.css';
 
 const DASHBOARD_EVENT_LIMIT = 5;
@@ -18,7 +19,7 @@ export default function DashboardPage() {
         setProjects(p);
         setEvents(page.data);
       })
-      .catch(console.error)
+      .catch(logError)
       .finally(() => setDataLoading(false));
   }, []);
 
