@@ -69,8 +69,12 @@ export default function SessionsPage() {
     eventId: string,
     patch: { started_at: string; stopped_at: string; task_description?: string; project_id?: string },
   ) => {
-    await trackingApi.update(eventId, patch);
-    await refresh();
+    const updated = await trackingApi.update(eventId, patch);
+    setEvents((prev) =>
+      prev.map((e) => (e.tracking_event_id === updated.tracking_event_id ? updated : e)),
+    );
+    // The event itself is already updated locally — only the aggregates need refetching.
+    await trackingApi.summary().then(setSummary).catch(logError);
   };
 
   const handleDelete = async (eventId: string) => {

@@ -95,6 +95,40 @@ test('editing and deleting a session', async ({ page }) => {
   await expect(page.getByText('Edited session')).not.toBeVisible({ timeout: 5000 });
 });
 
+test('editing and deleting a session from the dashboard', async ({ page }) => {
+  await page.goto('/dashboard');
+
+  await page.getByPlaceholder('What are you working on?').fill('Dashboard editable session');
+  await page.getByRole('button', { name: 'Start timer' }).click();
+  await page.waitForTimeout(1100);
+  await page.getByRole('button', { name: 'Stop timer' }).click();
+  await expect(page.getByRole('button', { name: 'Start timer' })).toBeVisible({ timeout: 5000 });
+
+  // The session should already be in the dashboard's own list — no navigation needed.
+  await expect(page.getByText('Dashboard editable session')).toBeVisible({ timeout: 5000 });
+
+  const item = page.getByText('Dashboard editable session').locator('..').locator('..');
+  await item.getByRole('button', { name: 'Edit session' }).click();
+
+  await page.getByPlaceholder('Task description').fill('Dashboard edited session');
+  await page.getByRole('button', { name: 'Save' }).click();
+
+  await expect(page.getByText('Dashboard edited session')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('Dashboard editable session')).not.toBeVisible();
+  // Still on the dashboard — the edit didn't trigger a navigation.
+  await expect(page).toHaveURL('/dashboard');
+
+  page.once('dialog', (dialog) => dialog.accept());
+  const editedItem = page.getByText('Dashboard edited session').locator('..').locator('..');
+  await editedItem.getByRole('button', { name: 'Delete session' }).click();
+
+  await expect(page.getByText('Dashboard edited session')).not.toBeVisible({ timeout: 5000 });
+
+  // Sessions can no longer overlap, so leave a real-time gap before whichever
+  // test runs next also logs a session via the Timer.
+  await page.waitForTimeout(1200);
+});
+
 test('creating an overlapping session via the API is rejected', async ({ page }) => {
   await page.goto('/dashboard');
 

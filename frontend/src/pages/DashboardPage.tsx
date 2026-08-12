@@ -23,20 +23,19 @@ export default function DashboardPage() {
       .finally(() => setDataLoading(false));
   }, []);
 
-  const refreshEvents = () =>
-    trackingApi.list({ pageSize: DASHBOARD_EVENT_LIMIT }).then((page) => setEvents(page.data));
-
   const handleUpdate = async (
     eventId: string,
     patch: { started_at: string; stopped_at: string; task_description?: string; project_id?: string },
   ) => {
-    await trackingApi.update(eventId, patch);
-    await refreshEvents();
+    const updated = await trackingApi.update(eventId, patch);
+    setEvents((prev) =>
+      prev.map((e) => (e.tracking_event_id === updated.tracking_event_id ? updated : e)),
+    );
   };
 
   const handleDelete = async (eventId: string) => {
     await trackingApi.delete(eventId);
-    await refreshEvents();
+    setEvents((prev) => prev.filter((e) => e.tracking_event_id !== eventId));
   };
 
   return (
