@@ -217,4 +217,27 @@
   .filterSelect {
     min-width: 100px;
   }
+
+  /* Charts become a swipeable, snapping carousel instead of stacking
+     vertically — scrolling past all four to reach the sessions list
+     below is otherwise the main mobile pain point on this page. */
+  .chartSection {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 1rem;
+    margin: 0 -1rem;
+    padding: 0 1rem;
+    scrollbar-width: none;
+  }
+
+  .chartSection::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chartCard {
+    flex: 0 0 85%;
+    scroll-snap-align: start;
+  }
 }

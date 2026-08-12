@@ -18,10 +18,10 @@ const EMPTY_SUMMARIES: TrackingSummaryResponse = {
 };
 
 const CHART_LABELS: Array<{ key: keyof TrackingSummaryResponse; label: string }> = [
-  { key: 'allTime', label: 'All time' },
   { key: 'day', label: 'Today' },
   { key: 'week', label: 'This week' },
   { key: 'month', label: 'This month' },
+  { key: 'allTime', label: 'All time' },
 ];
 
 const fetchSummary = () =>

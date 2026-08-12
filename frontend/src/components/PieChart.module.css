@@ -47,6 +47,8 @@
   gap: 0.5rem;
   width: 100%;
   max-width: 340px;
+  padding: 0 0.5rem;
+  box-sizing: border-box;
 }
 
 .legendItem {
