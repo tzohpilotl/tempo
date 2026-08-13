@@ -1,0 +1,133 @@
+* Design
+
+This is a document that describe the Tempo app from the product
+perspective. Its roadmap works as a backlog because it holds the action items
+identified by the product manager; it works as a tracker because its action
+items are toggleable todo items that should be marked as DONE when they get
+implemented; and it works as a spec because the tests should prove the software
+satisfies the requirements expressed in the [[*Features Overview][Features Overview]] and [[*Roadmap][Roadmap]].
+
+This is the single source of truth for product work and specification.
+Roadmap items are epics: they only flip from TODO to DONE in place once fully
+delivered, and are never moved out of the Roadmap. The [[*Changelog][Changelog]]
+accumulates independently — one entry per session or PR-sized unit of shipped
+work, at whatever granularity that naturally comes in, so several Changelog
+entries can land under one Roadmap epic before it's complete. A Changelog
+entry that contributes to a Roadmap item should link back to it, e.g. "part of
+[[*Enable hourly rates and billing calculation for projects][Enable hourly
+rates and billing calculation for projects]]"; entries with no matching epic
+just stand alone.
+
+** Features Overview
+The application offers the following features for free:
+*** DONE Unlimited sessions per day
+*** DONE Unlimited projects
+*** DONE Stopwatch behavior to count elapsed time
+*** DONE Ability to edit and delete sessions and projects
+*** DONE Today, this week, this month and all time metrics
+
+** Roadmap
+
+Items are listed in priority order, highest priority first.
+
+*** TODO Install in your device as a progressive web app
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+*** TODO Use tags to group sessions from different projects
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+*** TODO Have a free and a premium tier with different features
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+*** TODO Enable hourly rates and billing calculation for projects
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+*** TODO Define repeatable tasks
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+*** TODO Create timers too, not only stopwatch-like
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+*** TODO Set daily, weekly or monthly goals or budgets                :maybe:
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+*** TODO Integrate pomodoro functionality                             :maybe:
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+*** TODO Use a note for reflection at the end of the session          :maybe:
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+** Changelog
+
+Completed work items, newest first. Merged in from the old TODO.org scratch file.
+
+*** DONE Add a site-wide logging implementation
+:PROPERTIES:
+:CREATED: [2026-08-11 Tue]
+:END:
+Error handling is inconsistent across the frontend: useAuth.ts reports failures
+to Sentry via captureException, but DashboardPage.tsx, SessionsPage.tsx, and
+ProjectsPage.tsx just swallow errors into console.error with no Sentry report
+and no user-facing error state. Introduce a shared logging/error-reporting
+utility and use it consistently at every catch site so failures are actually
+tracked instead of only appearing in the browser console.
+
+Added utils/logger.ts (logError) wrapping Sentry.captureException + console.error,
+wired it into every catch site that was swallowing errors or console.error-only
+(DashboardPage, SessionsPage, ProjectsPage, Timer, EventLog, OnboardingPage,
+useAuth). Left context/timer.tsx's localStorage JSON.parse catch alone — that's
+expected recovery from stale/corrupt local data, not a bug signal. Wrapped <App />
+in Sentry.ErrorBoundary (main.tsx) with a fallback UI to catch unforeseen React
+render-time crashes; window.onerror/unhandledrejection are already covered by
+Sentry's default globalHandlersIntegration once Sentry.init runs (PROD only).
+
+*** DONE Show more details in default view in the sessions screen
+:PROPERTIES:
+:CREATED: [2026-08-03 Mon 15:27]
+:END:
+I think that the user might want to see more information at first sight since
+the already navigated to the "sessions" screen. Currently, we're making the user
+click on the edit button in order to see the session's data. Let's create a more
+verbose version of the session component.
+
+*** DONE Reduce the amount of sessions displayed in the main screen
+:PROPERTIES:
+:CREATED: [2026-08-03 Mon]
+:END:
+If the user wants to see more information about the sessions they would navigate
+to the sessions screen. The timer screen is all about the current session,
+that's why it's a good idea to limit even more the number of old sessions that
+are displayed.
+
+*** DONE Implement editing and deleting sessions
+:PROPERTIES:
+:CREATED: [2026-08-03 Mon]
+:END:
+Sometimes the user let the clock run too much, or a project might be added after
+the session ended, etc. There are many use cases for this functionality.
+
+** Compatibility
+Tempo is a web application which can be used easily on mobile screens. It would
+be of great benefit to have it as an app both in desktop and mobile devices, but
+the team currently doesn't have the bandwidth to implement or maintain such
+varied implementations. For now, it will continue to be a web application — the
+roadmap includes making it installable as a progressive web app on mobile
+devices (see [[*Roadmap][Roadmap]]).
