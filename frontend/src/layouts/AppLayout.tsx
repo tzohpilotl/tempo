@@ -8,14 +8,25 @@ import styles from './AppLayout.module.css';
 export type AppLayoutContext = User;
 
 export default function AppLayout() {
-  const { user, loading: authLoading, unauthenticated } = useAuth();
+  const { user, loading: authLoading, unauthenticated, error } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!authLoading && unauthenticated) navigate('/login', { replace: true });
   }, [unauthenticated, authLoading, navigate]);
 
-  if (authLoading || !user) return null;
+  if (authLoading) return null;
+
+  if (error && !user) {
+    return (
+      <div className={styles.offline}>
+        <p>Can't reach Tempo. Check your connection and try again.</p>
+        <button onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className={styles.root}>
