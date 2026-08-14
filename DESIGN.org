@@ -30,9 +30,29 @@ The application offers the following features for free:
 
 Items are listed in priority order, highest priority first.
 
-*** TODO Install in your device as a progressive web app
+*** DONE PWA support
 :PROPERTIES:
 :CREATED: [2026-08-12 Wed]
+:END:
+Users can install Tempo to their phone or desktop home screen / app drawer via
+the browser's native install prompt. Once installed, it opens in its own
+standalone window (no browser chrome or URL bar) with a proper app icon, and
+the static app shell keeps working through brief network hiccups. This does
+not include offline creation of tracking events — starting/stopping the timer
+still requires a live connection; see "Offline support" below for that.
+
+*** TODO Offline support
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
+:END:
+Create, edit and delete sessions while offline, queued locally and synced once
+a connection is back — part of [[*PWA support][PWA support]]. The installed
+app shell already works offline for the static UI; this is what makes the
+data layer work offline too.
+
+*** TODO Push notifications
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
 :END:
 
 *** TODO Use tags to group sessions from different projects
