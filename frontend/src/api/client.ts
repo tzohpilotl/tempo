@@ -1,14 +1,33 @@
 import type { User, Project, ProjectStats, TrackingEvent, TrackingEventsPage, TrackingSummaryResponse } from "../types";
 import type { DateRange } from "../utils/dateRange";
+import { getCached, setCached } from "../utils/offlineCache";
+import { reportNetworkSuccess, reportNetworkFailure } from "../utils/networkStatus";
 
 const BASE = "/api";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    credentials: "include", // always send the session cookie
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    ...options,
-  });
+  const isGet = (options?.method ?? "GET").toUpperCase() === "GET";
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      credentials: "include", // always send the session cookie
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      ...options,
+    });
+    // Reaching the server at all — even with an error status handled below —
+    // proves connectivity is currently fine.
+    reportNetworkSuccess();
+  } catch (networkErr) {
+    reportNetworkFailure();
+    // Only GETs have a cached fallback to offer — writes made offline still
+    // fail here today (queuing them is a later phase of offline support).
+    if (isGet) {
+      const cached = await getCached<T>(path);
+      if (cached !== undefined) return cached;
+    }
+    throw networkErr;
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -17,7 +36,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   // 204 No Content — return undefined cast to T
   if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  const data = (await res.json()) as T;
+  if (isGet) await setCached(path, data);
+  return data;
 }
 
 export class ApiError extends Error {

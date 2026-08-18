@@ -48,7 +48,38 @@ still requires a live connection; see "Offline support" below for that.
 Create, edit and delete sessions while offline, queued locally and synced once
 a connection is back — part of [[*PWA support][PWA support]]. The installed
 app shell already works offline for the static UI; this is what makes the
-data layer work offline too.
+data layer work offline too. Design and tradeoff analysis:
+[[*Offline Support Design][Offline Support Design]].
+
+**** DONE Phase 1 — Read-only offline cache
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
+:END:
+Cache the last-synced user, projects, and tracking events in IndexedDB, and
+fall back to that cache instead of a dead end when the network is down.
+
+**** TODO Phase 2 — Offline session creation
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
+:END:
+Queue timer-stop/create-event calls locally when offline, applied
+optimistically with a temp local ID, synced once back online; add a small
+"offline / N pending changes" UI indicator.
+
+**** TODO Phase 3 — Offline edit/delete of existing events
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
+:END:
+Extend the queue to edits and deletes, including edits made to an event that
+is itself still an unsynced local-only creation from Phase 2.
+
+**** TODO Phase 4 — Offline project creation                          :maybe:
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
+:END:
+Lower priority. Only creation is considered — offline edit/delete of
+projects is deferred indefinitely since projects are referenced by events
+and getting that wrong risks data integrity.
 
 *** TODO Push notifications
 :PROPERTIES:
@@ -95,9 +126,196 @@ data layer work offline too.
 :CREATED: [2026-08-12 Wed]
 :END:
 
+** Offline Support Design
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
+:END:
+Design and tradeoff analysis backing [[*Offline support][Offline support]] in the Roadmap.
+
+*** Problem
+The service worker added for [[*PWA support][PWA support]] only caches the static
+app shell (HTML/JS/CSS/icons), not API data. Offline, the shell loads but every
+data request (session check, event list, timer stop) fails — before this was
+diagnosed, a failed session check left the app on a blank screen indefinitely,
+since nothing handled that state (fixed separately — see the Changelog). There
+is currently no offline data story at all: no cached events to fall back to,
+and no way to create or edit a session without a live round trip to the
+backend.
+
+*** Design decisions and tradeoffs
+
+**** Persistence: IndexedDB, not React state or localStorage
+In-memory state doesn't survive a page reload, a closed tab, or — especially
+relevant on mobile — iOS evicting a backgrounded PWA's process to reclaim
+memory. Since going offline can mean hours between "create a session" and
+"reconnect," anything queued for sync has to survive process death, which
+rules out plain React state.
+
+localStorage (already used by [[file:frontend/src/context/timer.tsx][context/timer.tsx]]
+to persist the currently-running timer) was considered and rejected for the
+*queue and cache*, though it remains the right choice for that one small
+object: it's synchronous (blocks the main thread), string-only (manual JSON
+(de)serialization per record), capped around 5–10MB, and has no query/index
+support. IndexedDB is async, stores structured objects natively, has a much
+larger origin-based quota, and supports indexed lookups — needed once we're
+storing potentially hundreds of cached events plus an ordered mutation queue.
+
+**** Sync trigger: 'online' event + on-load check, not the Background Sync API
+The Background Sync API would let queued writes sync even after the tab is
+closed, but browser support is inconsistent and notably weak/absent on iOS
+Safari — the platform this app is actually installed on as a PWA today.
+Syncing only while the app is open (on load, and on the browser's 'online'
+event) is simpler, more predictable, and doesn't silently depend on a
+capability that may not exist on the user's device.
+
+**** Conflict handling: surface and stop, no auto-merge
+The backend rejects overlapping sessions server-side
+([[file:backend/src/tracking/tracking.service.ts][tracking.service.ts]]'s
+assertNoOverlap). If a queued item is rejected on sync (409 overlap, 404 not
+found because the referenced project or event was deleted elsewhere, etc.),
+the queue stops draining at that item and the conflict is surfaced clearly in
+the UI rather than dropped or auto-resolved. This app is single-user (see
+README's Access Control section), so building real multi-device merge logic
+isn't worth the complexity it would add — a human resolving an occasional
+conflict manually is an acceptable tradeoff here.
+
+**** Scope boundaries
+Deliberately deferred or out of scope: offline *editing or deleting* of
+projects (only offline *creation* is considered, and only in Phase 4 — see
+above); any cross-device automatic conflict resolution; and the Background
+Sync API (see above).
+
+*** Phases
+See the subtasks under [[*Offline support][Offline support]] in the Roadmap for
+the phase breakdown and status.
+
+** Compatibility
+Tempo is a web application which can be used easily on mobile screens. It would
+be of great benefit to have it as an app both in desktop and mobile devices, but
+the team currently doesn't have the bandwidth to implement or maintain such
+varied implementations. For now, it will continue to be a web application — the
+roadmap includes making it installable as a progressive web app on mobile
+devices (see [[*Roadmap][Roadmap]]).
+
 ** Changelog
 
 Completed work items, newest first. Merged in from the old TODO.org scratch file.
+
+*** DONE Drive the offline banner off real request failures, not just navigator.onLine
+:PROPERTIES:
+:CREATED: [2026-08-17 Mon]
+:END:
+Part of [[*Read-only offline cache][Read-only offline cache]] below. The
+"Offline — showing last synced data" banner only ever checked navigator.onLine
+via useOnlineStatus, which only reliably reflects "no network interface at
+all" (Airplane Mode, Wi-Fi off) — it stays "online" through a dead Wi-Fi
+uplink or exhausted/throttled cellular data, exactly the cases most likely to
+actually trigger the cache fallback in practice. So the banner could
+under-report: the app silently serving stale cached data with no indication
+to the user, in the more common real-world failure modes.
+
+Added utils/networkStatus.ts, a small module-level singleton (there's only
+ever one true answer for "is the network currently failing" for the whole
+app, so no Context needed here, unlike useOnlineStatus) tracking whether the
+last actual request reached the server, exposed to React via
+useSyncExternalStore. api/client.ts's request() now reports success/failure
+on every call, GET or write — reaching the server at all counts as success
+even for a reachable-but-erroring response (e.g. a 401), since that still
+proves connectivity is fine. AppLayout.tsx now shows the banner on
+`!browserOnline || networkFailing`, combining both signals: instant detection
+from the browser when available, self-correcting authoritative detection from
+real request outcomes otherwise. Added a permanent e2e test proving the
+motivating case directly — the banner shows while navigator.onLine stays
+true, with only the API requests failing.
+
+*** DONE Turn useOnlineStatus into a context provider
+:PROPERTIES:
+:CREATED: [2026-08-17 Mon]
+:END:
+Part of [[*Read-only offline cache][Read-only offline cache]] below. The
+original useOnlineStatus was a plain hook — each call created its own
+independent useState plus its own online/offline window listener pair, so N
+components using it meant N redundant listeners and N separate re-renders
+instead of one shared value. Not a bug (each instance's listener cleanup was
+correctly scoped to itself), just wasteful, and it mattered now because a
+planned follow-up (driving an offline indicator off actual fetch failures,
+not just navigator.onLine) means more than one consumer of this state soon.
+
+Replaced hooks/useOnlineStatus.ts with context/onlineStatus.tsx — same
+exported useOnlineStatus() name and behavior, but now backed by a single
+OnlineStatusProvider mounted once in App.tsx (alongside ThemeProvider, at the
+same app-wide scope) instead of one instance per consuming component.
+
+*** DONE Invalidate the offline cache by app version
+:PROPERTIES:
+:CREATED: [2026-08-16 Sun]
+:END:
+Part of [[*Read-only offline cache][Read-only offline cache]] below. That work
+shipped with no cache versioning — a future response-shape change could hand
+old-shaped data to new code with nothing to catch it — identified afterward and
+closed here.
+
+utils/offlineCache.ts now stamps every record with __APP_VERSION__ (already
+defined via vite.config.ts's define, already shown in the Sidebar footer) on
+write, and getCached() treats a record stamped with a different version as a
+miss — deleting it as a side effect, not awaited, since the read's return value
+doesn't depend on that delete completing. Standard pattern for this kind of
+problem (same idea as service worker cache-name versioning, or React Query's
+persistQueryClient buster option) — any time a persisted payload's shape is
+owned by application code rather than the storage layer, something has to
+detect a shape mismatch across deploys, since the storage layer itself has no
+way to know. Added utils/offlineCache.test.ts covering a plain miss, a normal
+round-trip, and the version-mismatch-treated-as-miss case (written by directly
+seeding a record with a stale appVersion into the fake-indexeddb-backed store,
+bypassing setCached's current-version stamp).
+
+*** DONE Add Vitest unit testing, starting with the API client
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
+:END:
+Related to [[*Read-only offline cache][Read-only offline cache]] below — the only
+tests covering that behavior were e2e, exercised indirectly through the UI, with
+no isolated test of api/client.ts's caching logic itself.
+
+Added vitest, jsdom, and fake-indexeddb as frontend devDependencies (test-only,
+never bundled) and wired vite.config.ts's test block to use them, with a setup
+file polyfilling indexedDB globally. New frontend/src/api/client.test.ts covers:
+a successful GET, falling back to cache on a network-level failure, rethrowing
+when nothing is cached, NOT falling back to cache for a reachable-but-erroring
+response (e.g. a real 401 must not resurrect a stale cached user), per-path
+cache isolation, writes never attempting a cache fallback, and 204 handling.
+
+While writing these, found and fixed a real bug: request() called setCached()
+fire-and-forget (`.catch(logError)`, not awaited). Since setCached() already
+catches its own errors internally and never rejects, awaiting it is strictly
+safer — the fire-and-forget version could race a fast subsequent offline
+reload past an unflushed cache write. Now awaited.
+
+*** DONE Read-only offline cache
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
+:END:
+Part of [[*Phase 1 — Read-only offline cache][Phase 1 — Read-only offline cache]]
+under [[*Offline support][Offline support]]. See
+[[*Offline Support Design][Offline Support Design]] for the full design and
+tradeoff analysis.
+
+Added utils/offlineCache.ts, a small IndexedDB key/value wrapper. api/client.ts's
+shared request() now caches every successful GET response by request path and,
+on a network-level failure (fetch throwing, not a reachable-but-erroring
+response), falls back to the cached value for that exact path instead of
+throwing — writes are untouched and still fail offline as before. Because this
+sits in the shared request() helper, auth.me/projects.list/projects.stats/
+tracking.list/tracking.summary all get the fallback for free with no
+per-endpoint changes.
+
+AppLayout.tsx's "Can't reach Tempo" fallback (added earlier when the app went
+blank on a failed offline session check) now only shows on a true first-ever
+offline load with nothing cached yet — a returning user's session/data
+transparently falls back to cache instead. Added a small "Offline — showing
+last synced data" banner (new useOnlineStatus hook, tracking the browser's own
+online/offline events) so stale-but-cached data is never shown silently as if
+it were live.
 
 *** DONE Add a site-wide logging implementation
 :PROPERTIES:
@@ -143,11 +361,3 @@ are displayed.
 :END:
 Sometimes the user let the clock run too much, or a project might be added after
 the session ended, etc. There are many use cases for this functionality.
-
-** Compatibility
-Tempo is a web application which can be used easily on mobile screens. It would
-be of great benefit to have it as an app both in desktop and mobile devices, but
-the team currently doesn't have the bandwidth to implement or maintain such
-varied implementations. For now, it will continue to be a web application — the
-roadmap includes making it installable as a progressive web app on mobile
-devices (see [[*Roadmap][Roadmap]]).

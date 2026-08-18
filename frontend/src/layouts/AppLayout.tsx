@@ -1,6 +1,8 @@
 import { useEffect, Suspense } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useOnlineStatus } from '../context/onlineStatus';
+import { useIsNetworkFailing } from '../utils/networkStatus';
 import Sidebar from '../components/Sidebar';
 import type { User } from '../types';
 import styles from './AppLayout.module.css';
@@ -10,6 +12,13 @@ export type AppLayoutContext = User;
 export default function AppLayout() {
   const { user, loading: authLoading, unauthenticated, error } = useAuth();
   const navigate = useNavigate();
+  const browserOnline = useOnlineStatus();
+  const networkFailing = useIsNetworkFailing();
+  // navigator.onLine only catches "no network interface at all" (Airplane
+  // Mode, Wi-Fi off) — it stays "online" through a dead Wi-Fi uplink or
+  // exhausted cellular data. networkFailing catches those, but only after an
+  // actual request has failed. Combining both gives the fastest true signal.
+  const isOffline = !browserOnline || networkFailing;
 
   useEffect(() => {
     if (!authLoading && unauthenticated) navigate('/login', { replace: true });
@@ -31,9 +40,14 @@ export default function AppLayout() {
   return (
     <div className={styles.root}>
       <Sidebar user={user} />
-      <Suspense fallback={null}>
-        <Outlet context={user satisfies AppLayoutContext} />
-      </Suspense>
+      <div className={styles.content}>
+        {isOffline && (
+          <div className={styles.offlineBanner}>Offline — showing last synced data</div>
+        )}
+        <Suspense fallback={null}>
+          <Outlet context={user satisfies AppLayoutContext} />
+        </Suspense>
+      </div>
     </div>
   );
 }

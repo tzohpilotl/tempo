@@ -3,6 +3,23 @@
   height: 100%;
 }
 
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.offlineBanner {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
 .offline {
   display: flex;
   flex-direction: column;
