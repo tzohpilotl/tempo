@@ -58,7 +58,7 @@ data layer work offline too. Design and tradeoff analysis:
 Cache the last-synced user, projects, and tracking events in IndexedDB, and
 fall back to that cache instead of a dead end when the network is down.
 
-**** TODO Phase 2 — Offline session creation
+**** DONE Phase 2 — Offline session creation
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
@@ -71,7 +71,13 @@ optimistically with a temp local ID, synced once back online; add a small
 :CREATED: [2026-08-13 Thu]
 :END:
 Extend the queue to edits and deletes, including edits made to an event that
-is itself still an unsynced local-only creation from Phase 2.
+is itself still an unsynced local-only creation from Phase 2. Also merge
+pending events into SessionsPage's list the way DashboardPage already does
+(deferred from Phase 2 — see the Changelog entry for that phase) — doing it
+correctly means reasoning about pagination and project-filter interaction
+(pending events only make sense on page 1, unfiltered), which belongs with
+this phase's edit/delete work anyway since both need the same "is this event
+still local-only" handling.
 
 **** TODO Phase 4 — Offline project creation                          :maybe:
 :PROPERTIES:
@@ -200,6 +206,71 @@ devices (see [[*Roadmap][Roadmap]]).
 ** Changelog
 
 Completed work items, newest first. Merged in from the old TODO.org scratch file.
+
+*** DONE Phase 2 — Offline session creation
+:PROPERTIES:
+:CREATED: [2026-08-17 Mon]
+:END:
+Part of [[*Phase 2 — Offline session creation][Phase 2 — Offline session
+creation]] under [[*Offline support][Offline support]].
+
+Added utils/offlineQueue.ts — its own IndexedDB database (separate from the
+Phase 1 response cache; different concern, a durable ordered write queue, not
+a keyed response cache). queueEventCreate() stores a pending create and
+returns an optimistic TrackingEvent immediately (local-<uuid> id, project
+name resolved from the Phase 1 projects cache). getPendingEvents() lets pages
+merge not-yet-synced events into what they render, including after a reload.
+drainQueue() is the sync engine: POSTs queued items in order, stops at the
+first real rejection (ApiError, e.g. a 409 overlap) and records it as a
+conflict rather than dropping or skipping it — the documented "surface and
+stop" policy — and stops silently on a renewed network failure to retry
+later. Guarded against concurrent calls, since two drains running at once
+could double-POST the same item.
+
+Timer.tsx's handleStop tries tracking.log() first; a real ApiError still
+surfaces as today, but a network-level failure falls back to
+queueEventCreate() instead, so the UI treats it as a normal save either way.
+client.ts's request() is now exported so App.tsx can pass it into
+drainQueue(), since synthesizing an optimistic response needs the raw
+request — this couldn't be centralized inside request() itself the way
+Phase 1's GET cache was, because building a valid optimistic TrackingEvent
+needs domain knowledge request() doesn't have. drainQueue() takes the
+request function as a parameter (a RequestFn type it defines itself) rather
+than importing client.ts directly, so offlineQueue.ts stays agnostic of that
+module's concrete implementation — only ApiError is still imported, for the
+conflict-detection instanceof check. Tests inject a mock function directly
+instead of stubbing global fetch.
+
+DashboardPage merges pending events into its list, deduplicating by
+(started_at, stopped_at) against the synced list — needed because
+drainQueue() can finish syncing an item in the background between this
+page's own fetch and its queue read finishing, which could otherwise show
+the same session twice. SessionsPage does NOT get this merge — doing it
+correctly there means reasoning about pagination and project-filter
+interaction (pending events only make sense on page 1, unfiltered), which
+felt like real scope creep for a secondary page when the primary surface
+(Dashboard, where the Timer lives) was already covered; Phase 3 already
+needs to handle "this event is still local-only" more deeply for edit/delete,
+so consolidating that there is more honest than a partial fix now.
+
+The sync trigger (App.tsx's QueueSync) originally only reacted to
+navigator.onLine's 'online' event — but per the same navigator.onLine gap
+already identified for the banner, that event doesn't fire when a dead
+Wi-Fi uplink or throttled cellular data recovers either, so a drain could
+get permanently stuck with no retry. Fixed by also reacting to
+networkFailing (utils/networkStatus.ts) flipping back to false, which fires
+whenever any request actually succeeds again, catching the case
+navigator.onLine misses.
+
+The offline banner (AppLayout.tsx) now reflects queue status too: pending
+count while offline, "Syncing…" while online with items still draining, and
+a distinct (danger-colored) message when drainQueue records a conflict.
+
+Explicitly out of scope, matching what was already documented for this
+phase: editing/deleting a still-queued event, and creating a *new* project
+while offline as part of stopping the timer (that specific combined action
+still fails with today's error message — queuing project creation is Phase 4
+territory).
 
 *** DONE Drive the offline banner off real request failures, not just navigator.onLine
 :PROPERTIES:

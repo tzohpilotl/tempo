@@ -20,6 +20,11 @@
   text-align: center;
 }
 
+.offlineBannerError {
+  background: rgba(196, 52, 40, 0.1);
+  color: var(--danger);
+}
+
 .offline {
   display: flex;
   flex-direction: column;

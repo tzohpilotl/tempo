@@ -5,7 +5,8 @@ import { reportNetworkSuccess, reportNetworkFailure } from "../utils/networkStat
 
 const BASE = "/api";
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+/** Exported so App.tsx can inject it into offlineQueue.ts's sync engine — everything else should go through auth/projects/tracking. */
+export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const isGet = (options?.method ?? "GET").toUpperCase() === "GET";
 
   let res: Response;
