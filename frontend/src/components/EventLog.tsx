@@ -15,6 +15,8 @@ interface Props {
   onDelete: (eventId: string) => Promise<void>;
   /** Shows the full date and the start–end time range instead of the compact "Today · 2:15 PM" form. */
   detailed?: boolean;
+  /** Ids with an unsynced change queued (from useQueueStatus) — badged "Not synced" instead of silently looking identical to a committed session. */
+  pendingIds?: Set<string>;
 }
 
 function formatDuration(seconds: number): string {
@@ -66,7 +68,15 @@ interface EditState {
   stopped_at: string;
 }
 
-export default function EventLog({ events, loading, projects, onUpdate, onDelete, detailed = false }: Props) {
+export default function EventLog({
+  events,
+  loading,
+  projects,
+  onUpdate,
+  onDelete,
+  detailed = false,
+  pendingIds,
+}: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<EditState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -145,6 +155,7 @@ export default function EventLog({ events, loading, projects, onUpdate, onDelete
               <li
                 key={event.tracking_event_id}
                 className={`${styles.item} ${styles.itemEditing}`}
+                data-testid="session-item"
               >
                 <form
                   className={styles.editForm}
@@ -214,6 +225,7 @@ export default function EventLog({ events, loading, projects, onUpdate, onDelete
               key={event.tracking_event_id}
               className={styles.item}
               style={{ animationDelay: `${i * 40}ms` }}
+              data-testid="session-item"
             >
               <div className={styles.itemLeft}>
                 {event.task_description ? (
@@ -222,6 +234,12 @@ export default function EventLog({ events, loading, projects, onUpdate, onDelete
                   <span className={styles.taskDescEmpty}>Untitled session</span>
                 )}
                 <div className={styles.meta}>
+                  {pendingIds?.has(event.tracking_event_id) && (
+                    <>
+                      <span className={styles.pendingBadge}>Not synced</span>
+                      <span className={styles.metaDot}>·</span>
+                    </>
+                  )}
                   {event.project && (
                     <>
                       <span className={styles.projectTag}>{capitalize(event.project.name)}</span>

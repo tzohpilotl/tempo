@@ -66,7 +66,7 @@ Queue timer-stop/create-event calls locally when offline, applied
 optimistically with a temp local ID, synced once back online; add a small
 "offline / N pending changes" UI indicator.
 
-**** TODO Phase 3 — Offline edit/delete of existing events
+**** DONE Phase 3 — Offline edit/delete of existing events
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
@@ -206,6 +206,100 @@ devices (see [[*Roadmap][Roadmap]]).
 ** Changelog
 
 Completed work items, newest first. Merged in from the old TODO.org scratch file.
+
+*** DONE Badge unsynced sessions inline instead of leaving them indistinguishable
+:PROPERTIES:
+:CREATED: [2026-08-18 Tue]
+:END:
+Follow-up to [[*Phase 3 — Offline edit/delete of existing events][Phase 3 —
+Offline edit/delete of existing events]] below. A session with an unsynced
+change (still-queued creation, or a synced event with a queued edit) looked
+identical to a fully-committed one in the list — only the page-level "N
+changes pending sync" banner hinted anything was queued, with no way to tell
+*which* session(s). Considered a separate "not yet synced" section, but
+pagination already got complicated enough in Phase 3 (pending creates only
+merge onto an unfiltered page 1) — splitting into two lists would mean
+keeping them in sync as items drain mid-list on any page, for a
+comparatively small clarity win.
+
+Instead, utils/offlineQueue.ts's reactive queue status
+(useQueueStatus/QueueStatus) grew a third field, pendingIds — a Set of every
+id with something queued against it (a still-unsynced creation's own local
+id, or a synced event's id if it has a queued edit; a queued delete doesn't
+need an entry since applyPendingChanges already filters that event out of
+the list entirely), recomputed by refreshPendingCount() alongside
+pendingCount so it inherits the same reactivity and self-corrects the moment
+a drain completes — no extra plumbing needed in the pages beyond reading it.
+EventLog.tsx takes it as an optional pendingIds prop and renders a small
+"Not synced" pill in an item's meta row (next to the project tag) when its id
+is a member; DashboardPage and SessionsPage both just pass
+useQueueStatus().pendingIds straight through. Added badge assertions to two
+of the Phase 3 e2e cases (queued creation, queued edit) confirming the badge
+appears while offline and disappears once the change has synced.
+
+*** DONE Phase 3 — Offline edit/delete of existing events
+:PROPERTIES:
+:CREATED: [2026-08-18 Tue]
+:END:
+Part of [[*Phase 3 — Offline edit/delete of existing events][Phase 3 — Offline
+edit/delete of existing events]] under [[*Offline support][Offline support]].
+
+utils/offlineQueue.ts's queue now holds three op types instead of just
+creates: 'create' (unchanged from Phase 2), 'update' (targets a real
+server-side event id with a full replacement payload), and 'delete' (targets
+a real server-side event id). Old Phase 2 entries predate the 'type' field —
+getAllEntries() treats a typeless entry as a create for backward
+compatibility. queueEventUpdate/queueEventDelete special-case editing or
+deleting an event that is itself still a queued, not-yet-synced Phase 2
+creation (a local-<uuid> id): there's nothing server-side to target yet, so
+an edit is folded straight into the 'create' entry's payload (replacing it
+entirely — only the final desired state matters) and a delete just drops
+that 'create' entry from the queue outright, rather than ever producing a
+separate 'update'/'delete' op with a local id as its target. A second edit to
+the same already-synced target before the first one drains also replaces the
+queued 'update' payload rather than stacking a second op; a delete queued
+after a pending update drops that update first, since it's moot once the
+event is gone. This means by the time drainQueue() runs, every 'update' and
+'delete' entry is guaranteed to carry a real server id — drainQueue() PATCHes
+or DELETEs accordingly, still stopping and recording a conflict on the first
+real rejection (e.g. a 409 overlap or a 404 because the target was deleted
+elsewhere), per the same "surface and stop" policy as Phase 2.
+
+SyncConflict dropped its `event` field — update/delete conflicts have no full
+TrackingEvent to show (only a patch or a bare id), and the banner only ever
+rendered `conflict.error.message` anyway.
+
+DashboardPage and SessionsPage's onUpdate/onDelete now mirror Timer.tsx's
+Phase 2 pattern: an edit/delete on a still-local-only event goes straight to
+queueEventUpdate/queueEventDelete (online or offline — there's no server
+copy to call), and one on a real synced event tries the real PATCH/DELETE
+first, falling back to the queue only on a network-level failure (a real
+ApiError, e.g. an overlap or validation error, still surfaces as today).
+
+Added getPendingChanges() (creates/updates/deletes snapshot) and
+applyPendingChanges() (filters queued deletes and overlays queued edits onto
+a fetched list, resolving project_id against the caller's already-loaded
+projects rather than the response cache) to utils/offlineQueue.ts, and wired
+both pages through them. This finally gives SessionsPage the pending-merge
+DashboardPage got in Phase 2 (deferred at the time — see that entry below):
+pending *creates* are only merged onto an unfiltered page 1, since a brand
+new session has no real position in a paginated/filtered server list, but
+pending *edits and deletes* apply regardless of page or filter, since the
+event they target can be sitting anywhere. getPendingEvents() was renamed to
+getPendingCreates() to make that distinction explicit now that "pending"
+covers three different kinds of change.
+
+Extended offlineQueue.test.ts with cases for both queue-folding behaviors
+(edit/delete of a still-queued creation), update/delete op upserts and their
+drainQueue POST/PATCH/DELETE dispatch, and applyPendingChanges' filter+patch
+behavior. Added three e2e cases to offline.spec.ts: editing a synced session
+offline, deleting one offline, and editing a session that is itself still an
+unsynced creation — all asserting the change survives a reload once
+reachable again. Also renamed the existing "N session(s) pending sync"
+wording to "N change(s) pending sync", since the indicator now counts edits
+and deletes too, not just new sessions — matching the "N pending changes"
+phrasing this indicator was described with when first introduced in Phase 2
+above.
 
 *** DONE Phase 2 — Offline session creation
 :PROPERTIES:

@@ -22,10 +22,10 @@ function getStatusMessage(
   if (conflict) return `A change couldn't sync: ${conflict.error.message}`;
   if (isOffline) {
     return pendingCount > 0
-      ? `Offline — ${pluralize(pendingCount, 'session')} pending sync`
+      ? `Offline — ${pluralize(pendingCount, 'change')} pending sync`
       : 'Offline — showing last synced data';
   }
-  if (pendingCount > 0) return `Syncing ${pluralize(pendingCount, 'session')}…`;
+  if (pendingCount > 0) return `Syncing ${pluralize(pendingCount, 'change')}…`;
   return null;
 }
 
