@@ -28,18 +28,25 @@ The application offers the following features for free:
 
 ** Roadmap
 
-Items are listed in priority order, highest priority first.
+Open (TODO) items are listed first, in priority order, highest priority
+first. Completed (DONE) items are kept at the end of the list,
+chronologically by creation date, rather than mixed in with what's still
+open.
 
-*** DONE PWA support
+*** TODO Harden auth/session security
 :PROPERTIES:
-:CREATED: [2026-08-12 Wed]
+:CREATED: [2026-08-19 Wed]
 :END:
-Users can install Tempo to their phone or desktop home screen / app drawer via
-the browser's native install prompt. Once installed, it opens in its own
-standalone window (no browser chrome or URL bar) with a proper app icon, and
-the static app shell keeps working through brief network hiccups. This does
-not include offline creation of tracking events — starting/stopping the timer
-still requires a live connection; see "Offline support" below for that.
+Smaller, independent hardening items found while investigating the
+re-login problem above — not required to fix session persistence, but
+cheap to do alongside it. See [[*Login / Auth Design][Login / Auth Design]]
+for detail:
+- Logout is a GET route despite its own doc comment saying POST, making it
+  triggerable cross-site (e.g. via an `<img>` tag on another page).
+- Session cookie has no explicit `sameSite`, and the app has no CSRF token
+  protection elsewhere either.
+- `SESSION_SECRET` silently falls back to a public, hardcoded string if
+  unset, instead of failing startup.
 
 *** TODO Offline support
 :PROPERTIES:
@@ -132,6 +139,28 @@ and getting that wrong risks data integrity.
 :CREATED: [2026-08-12 Wed]
 :END:
 
+*** DONE PWA support
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+Users can install Tempo to their phone or desktop home screen / app drawer via
+the browser's native install prompt. Once installed, it opens in its own
+standalone window (no browser chrome or URL bar) with a proper app icon, and
+the static app shell keeps working through brief network hiccups. This does
+not include offline creation of tracking events — starting/stopping the timer
+still requires a live connection; see "Offline support" below for that.
+
+*** DONE Extend login session duration / reduce forced re-logins
+:PROPERTIES:
+:CREATED: [2026-08-19 Wed]
+:END:
+Users are being logged out and asked to re-authenticate more often than
+expected, which has cost real data once already: a time-tracking session was
+lost when a forced re-login interrupted it (this predates
+[[*Offline support][Offline support]], which would likely prevent a
+recurrence today, but doesn't address the underlying cause). See
+[[*Login / Auth Design][Login / Auth Design]].
+
 ** Offline Support Design
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
@@ -180,10 +209,11 @@ The backend rejects overlapping sessions server-side
 assertNoOverlap). If a queued item is rejected on sync (409 overlap, 404 not
 found because the referenced project or event was deleted elsewhere, etc.),
 the queue stops draining at that item and the conflict is surfaced clearly in
-the UI rather than dropped or auto-resolved. This app is single-user (see
-README's Access Control section), so building real multi-device merge logic
-isn't worth the complexity it would add — a human resolving an occasional
-conflict manually is an acceptable tradeoff here.
+the UI rather than dropped or auto-resolved. Tracking events are scoped per
+user account, and each account is still only used by one person across their
+own devices (see README's Access Control section), so building real
+multi-device merge logic isn't worth the complexity it would add — a human
+resolving an occasional conflict manually is an acceptable tradeoff here.
 
 **** Scope boundaries
 Deliberately deferred or out of scope: offline *editing or deleting* of
@@ -194,6 +224,129 @@ Sync API (see above).
 *** Phases
 See the subtasks under [[*Offline support][Offline support]] in the Roadmap for
 the phase breakdown and status.
+
+** Login / Auth Design
+:PROPERTIES:
+:CREATED: [2026-08-19 Wed]
+:END:
+Design context backing [[*Extend login session duration / reduce forced re-logins][Extend login session duration / reduce forced re-logins]] in the Roadmap.
+
+*** Current architecture
+Authentication is Google OAuth 2.0 via Passport
+([[file:backend/src/auth/google.strategy.ts][google.strategy.ts]]), backed by
+a server-side session — not a client-held JWT. The frontend never sees a
+token: it authenticates by sending the `connect.sid` cookie automatically
+(`credentials: "include"` in
+[[file:frontend/src/api/client.ts][api/client.ts]]) and checks login state by
+calling `GET /auth/me` on load
+([[file:frontend/src/hooks/useAuth.ts][hooks/useAuth.ts]]). A confirmed 401
+routes the user to =/login=; a network/5xx error with a cached user instead
+shows a "can't reach Tempo" retry screen, so being offline isn't confused
+with being logged out
+([[file:frontend/src/layouts/AppLayout.tsx][AppLayout.tsx]]).
+
+Sessions live server-side via `express-session`
+([[file:backend/src/main.ts][main.ts]]), persisted to a SQLite file
+(`connect-sqlite3`) in the same Docker volume as the app database, so a
+backend restart/redeploy no longer wipes active sessions. The `connect.sid`
+cookie is `httpOnly`, `secure` in production, has a 7-day `maxAge`, and now
+uses `rolling: true` so active use keeps extending the cookie instead of
+logging someone out mid-session. There is still no refresh-token mechanism
+(none needed — it's a plain server session, not a JWT). Only `user_id` is
+serialized into the session
+([[file:backend/src/auth/session.serializer.ts][session.serializer.ts]]); the
+full user is re-hydrated from the DB on every request. `SESSION_SECRET` is
+now required in production — the process refuses to start rather than
+silently signing sessions with a guessable default.
+
+*** Problem (resolved)
+Users were being asked to log back in more often than the 7-day cookie
+lifetime alone would suggest. The cause was that every backend
+restart/redeploy wiped the in-memory `memorystore` session store, silently
+invalidating all sessions regardless of cookie age. This had already cost
+real data once: a time-tracking session was lost when a forced re-login
+interrupted it. That incident predates
+[[*Offline support][Offline support]], which would likely prevent a
+recurrence today by queuing the in-flight change locally, but offline
+support didn't address the underlying cause of the frequent logouts
+themselves. The app now has multiple real users (friends, not just the
+product owner — see README's Access Control section), so an in-memory
+session store forcing everyone out on every redeploy was a bigger blast
+radius than it used to be. Fixed by moving to a persistent SQLite-backed
+session store — see the Changelog entry under
+[[*Extend login session duration / reduce forced re-logins][Extend login
+session duration / reduce forced re-logins]].
+
+*** Open questions
+- Move to a persistent session store. The app currently runs on SQLite
+  ([[file:backend/src/app.module.ts][app.module.ts]]), not Postgres, so the
+  lowest-risk fix is a SQLite/TypeORM-backed session store (e.g.
+  `connect-sqlite3` or `connect-typeorm`) pointed at the same persisted
+  Docker volume as the main DB — not a full migration to Postgres, which
+  the README lists as a possible *future* infra change but which isn't
+  needed just to fix session persistence.
+- Consider extending `maxAge` and/or enabling rolling sessions so active use
+  keeps extending the cookie lifetime.
+- Access is optionally gated by a single `ALLOWED_EMAIL`
+  ([[file:backend/src/auth/auth.service.ts][auth.service.ts]]); with actual
+  friends using the app under their own Google accounts, revisit whether that
+  single-email allowlist is still the right access control model, independent
+  of the session-duration fix.
+
+*** Session store options: connect-sqlite3 vs connect-typeorm
+
+Both point the session store at the same SQLite file already used for the
+app DB (persisted in the existing Docker volume), so either fixes the
+restart/redeploy data loss. They differ in integration style:
+
+| | =connect-sqlite3= | =connect-typeorm= |
+|---|---|---|
+| Storage | Own SQLite file/table via its own =sqlite3= driver, independent of the app's =better-sqlite3=/TypeORM connection | Reuses the app's existing TypeORM =DataSource=, adds a =Session= entity managed by TypeORM |
+| Maintenance | Actively published (0.9.18, released 2026-08-06) | Last published 2.0.0 in 2022-07-05; no activity since |
+| Schema coupling | None — session table lives outside TypeORM's =synchronize: true= schema management | Session entity is subject to the same auto-sync as app entities ([[file:backend/src/app.module.ts][app.module.ts:26]]), so a bad synchronize run on app entities can't easily be isolated from session data |
+| Dependencies added | =connect-sqlite3= + a second SQLite driver (=sqlite3=, separate from =better-sqlite3=) alongside the one already in use | No new SQLite driver; adds only the =connect-typeorm= package on top of the existing TypeORM setup |
+| Types | =@types/connect-sqlite3= exists but lags (0.9.6 vs library 0.9.18) | Written in TypeScript, ships its own types |
+| Failure isolation | A problem in the session store can't corrupt app data or vice versa (separate file/driver) | Session store shares fate with the app DB connection — one connection pool, one point of failure, but also one less moving part |
+
+*Decision:* =connect-sqlite3=, mainly because =connect-typeorm= hasn't
+been published since 2022 (this project is actively maintained and running
+current dependency versions elsewhere), and keeping the session table outside
+TypeORM's =synchronize: true= avoids any chance of app-entity schema changes
+touching session data. The tradeoff is a second SQLite driver dependency and
+slightly lagging community type definitions, both minor. Note: neither
+option helps with running multiple backend replicas — both are SQLite-file
+based, and a file can't be shared across containers. Sharing sessions across
+replicas would need a network-accessible store (Postgres/Redis) regardless
+of which of these two is picked now; that's out of scope here (see the
+single-replica note in the Migration plan below).
+
+*** Migration plan (done)
+
+- [X] Add =connect-sqlite3= (and =@types/connect-sqlite3=) to
+  =backend/package.json=.
+- [X] Point the store at a file inside the same persisted Docker volume the
+  main DB already uses, so it survives restarts/redeploys the same way.
+- [X] Swap =memorystore= for the new store in
+  [[file:backend/src/main.ts][main.ts]], keeping the same cookie
+  options.
+- [X] Make =SESSION_SECRET= required in production instead of silently
+  defaulting to a hardcoded string ("=change-me-in-production=", which was
+  misleading since it named production but was only ever reachable outside
+  it even before this fix — renamed to
+  =local-dev-only-secret-not-for-production= for clarity) — bundled in
+  here since it's touching the same session setup code (the broader
+  hardening pass is tracked separately under
+  [[*Harden auth/session security][Harden auth/session security]]).
+- [X] Add =rolling: true= so active users don't get logged out mid-use
+  before the 7-day mark.
+- [X] Verify locally: log in, restart the backend process, confirm the
+  session survives on the same cookie.
+- [X] Update the README (Security section, and the "swap SQLite for
+  Postgres" note that previously implied the session fix required a full DB
+  migration).
+- [X] Note the remaining limit: still single-replica only (a SQLite-file
+  store can't be shared across multiple backend containers) — out of scope
+  unless/until scaling beyond one container is needed.
 
 ** Compatibility
 Tempo is a web application which can be used easily on mobile screens. It would
@@ -206,6 +359,28 @@ devices (see [[*Roadmap][Roadmap]]).
 ** Changelog
 
 Completed work items, newest first. Merged in from the old TODO.org scratch file.
+
+*** DONE Move session store off in-memory memorystore
+:PROPERTIES:
+:CREATED: [2026-08-19 Wed]
+:END:
+Part of [[*Extend login session duration / reduce forced re-logins][Extend
+login session duration / reduce forced re-logins]]. Root cause of the
+frequent-relogin problem: every backend restart/redeploy wiped
+`memorystore`'s in-process session data, invalidating every active session
+regardless of the 7-day cookie `maxAge`. Replaced it with `connect-sqlite3`
+([[file:backend/src/main.ts][main.ts]]), storing sessions in a
+`sessions.sqlite` file next to the app database in the same persisted Docker
+volume — chosen over `connect-typeorm` for being actively maintained and for
+keeping the session table outside TypeORM's `synchronize: true` schema
+management (see the comparison in
+[[*Login / Auth Design][Login / Auth Design]]). Also added `rolling: true`
+so active use extends the cookie instead of expiring mid-session, and made
+`SESSION_SECRET` required in production instead of silently falling back to
+a hardcoded default. Verified locally by logging in, killing the backend
+process, restarting it, and confirming the same cookie still authenticated.
+Note this doesn't enable multiple backend replicas — a SQLite file still
+can't be shared across containers; that's unchanged from before.
 
 *** DONE Badge unsynced sessions inline instead of leaving them indistinguishable
 :PROPERTIES:

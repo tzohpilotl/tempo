@@ -41,7 +41,7 @@ Browser → Caddy:443 (TLS) → /api/* → backend:3000
                            → /*     → React SPA (static, baked into Caddy image)
 ```
 
-Sessions are cookie-based (express-session, httpOnly, secure). The SQLite database is stored in a named Docker volume and persists across container restarts and re-deploys. TLS certificates are provisioned automatically by Caddy via Let's Encrypt and persisted in a separate named volume.
+Sessions are cookie-based (express-session, httpOnly, secure), backed by a SQLite session store (`connect-sqlite3`). Both the app database and the session store are stored in the same named Docker volume and persist across container restarts and re-deploys. TLS certificates are provisioned automatically by Caddy via Let's Encrypt and persisted in a separate named volume.
 
 ---
 
@@ -93,9 +93,8 @@ All responses carry the following headers, set by Caddy:
 
 ### Known Limitations
 
-- **In-memory session store.** Sessions live in `memorystore` (in-process). A container restart loses all active sessions — users are redirected to log in again. For a personal single-user app this is acceptable. To harden: replace with `connect-pg-simple` backed by a Postgres instance.
 - **No CSRF protection.** The app relies on cookie `SameSite` defaults (`Lax`) rather than explicit CSRF tokens. This is adequate for a same-origin SPA that never accepts cross-origin form posts.
-- **Single-replica only.** The in-memory session store and SQLite file are not shareable across multiple instances. Do not run more than one backend container replica.
+- **Single-replica only.** The SQLite session store and SQLite app database are both plain files and not shareable across multiple instances. Do not run more than one backend container replica.
 
 ---
 
@@ -342,4 +341,4 @@ The repository layer is abstracted behind interfaces in `src/database/repositori
 2. Change `type: 'sqlite'` to `type: 'postgres'` in `app.module.ts` and add connection params
 3. The rest of the application code is unchanged
 
-For sessions, swap `memorystore` for `connect-pg-simple` and point it at the same Postgres instance. This also resolves the in-memory session limitation noted in the Security section.
+For sessions, swap `connect-sqlite3` for `connect-pg-simple` and point it at the same Postgres instance — mainly useful if you also want to run more than one backend replica, since a single SQLite-backed session store already survives restarts/redeploys on its own.

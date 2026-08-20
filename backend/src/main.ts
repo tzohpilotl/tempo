@@ -1,15 +1,23 @@
+import path from "node:path";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import session from "express-session";
 import passport from "passport";
 import { ValidationPipe } from "@nestjs/common";
-import createMemoryStore from "memorystore";
+import connectSqlite3 from "connect-sqlite3";
 
-const SessionStore = createMemoryStore(session);
+const SQLiteStore = connectSqlite3(session);
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (process.env.NODE_ENV === "production" && !sessionSecret) {
+    throw new Error(
+      "SESSION_SECRET must be set in production — refusing to start with a guessable default.",
+    );
+  }
 
   // Trust one level of reverse proxy (Caddy) so secure cookies and
   // X-Forwarded-Proto work correctly behind TLS termination.
@@ -30,20 +38,27 @@ async function bootstrap() {
   });
 
   // Session middleware.
-  // memorystore is used here for simplicity — it prunes expired sessions
-  // automatically and needs no native compilation.
-  // For production on a VPS, swap this for connect-pg-simple or similar.
+  // Sessions are persisted to a SQLite file alongside the main app database,
+  // in the same Docker volume — so backend restarts/redeploys don't wipe
+  // everyone's login (memorystore, used previously, kept sessions in
+  // process memory only).
+  const databasePath = process.env.DATABASE_PATH ?? "./data/time-tracker.sqlite";
   app.use(
     session({
-      store: new SessionStore({
-        checkPeriod: 86_400_000, // prune expired sessions every 24h
-      }),
-      secret: process.env.SESSION_SECRET ?? "change-me-in-production",
+      store: new SQLiteStore({
+        dir: path.dirname(databasePath),
+        db: "sessions.sqlite",
+        table: "sessions",
+      }) as session.Store,
+      // Only reached outside production — the guard above already
+      // requires SESSION_SECRET to be set when NODE_ENV=production.
+      secret: sessionSecret ?? "local-dev-only-secret-not-for-production",
       resave: false,
+      rolling: true, // extend the cookie on each request so active use doesn't get logged out mid-session
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, refreshed by `rolling` above
         secure: process.env.NODE_ENV === "production",
       },
     }),
