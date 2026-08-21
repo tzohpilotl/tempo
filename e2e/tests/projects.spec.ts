@@ -1,11 +1,16 @@
 import { test, expect } from '@playwright/test';
 
-test('creating a new project via the timer flow', async ({ page }) => {
-  await page.goto('/dashboard');
-
-  // Switch to the new-project input in the Timer
-  await page.getByRole('button', { name: '+ New' }).click();
+test('creating a new project via the projects page, then using it in the timer flow', async ({ page }) => {
+  // Create the project on the Projects page.
+  await page.goto('/projects');
   await page.getByPlaceholder('New project name…').fill('Playwright Project');
+  await page.getByRole('button', { name: 'Add' }).click();
+  await expect(page.getByText('Playwright Project', { exact: false })).toBeVisible({ timeout: 5000 });
+
+  // Switch to the Timer and select the new project.
+  await page.getByRole('button', { name: 'Timer' }).click();
+  await expect(page).toHaveURL('/dashboard');
+  await page.locator('select').selectOption({ label: 'Playwright Project' });
 
   // Start the timer, wait long enough that stopped_at > started_at, then stop
   await page.getByRole('button', { name: 'Start timer' }).click();
@@ -19,7 +24,7 @@ test('creating a new project via the timer flow', async ({ page }) => {
   // test runs next also logs a session via the Timer.
   await page.waitForTimeout(1200);
 
-  // Navigate to Projects and confirm the new project is listed.
+  // Navigate to Projects and confirm the session was logged against it.
   // Wait for the h1 heading before checking the list — the URL changes before
   // React finishes unmounting DashboardPage, so the Timer <select> and EventLog
   // project tags are still in the DOM until the new route's commit phase completes.

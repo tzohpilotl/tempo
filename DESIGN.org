@@ -1,22 +1,18 @@
 * Design
 
-This is a document that describe the Tempo app from the product
-perspective. Its roadmap works as a backlog because it holds the action items
-identified by the product manager; it works as a tracker because its action
-items are toggleable todo items that should be marked as DONE when they get
-implemented; and it works as a spec because the tests should prove the software
-satisfies the requirements expressed in the [[*Features Overview][Features Overview]] and [[*Roadmap][Roadmap]].
+This is a document that describe the Tempo app from the product perspective. Its roadmap works as a
+backlog because it holds the action items identified by the product manager; it works as a tracker
+because its action items are toggleable todo items that should be marked as DONE when they get
+implemented; and it works as a spec because the tests should prove the software satisfies the
+requirements expressed in the [[*Features Overview][Features Overview]] and [[*Roadmap][Roadmap]].
 
-This is the single source of truth for product work and specification.
-Roadmap items are epics: they only flip from TODO to DONE in place once fully
-delivered, and are never moved out of the Roadmap. The [[*Changelog][Changelog]]
-accumulates independently — one entry per session or PR-sized unit of shipped
-work, at whatever granularity that naturally comes in, so several Changelog
-entries can land under one Roadmap epic before it's complete. A Changelog
-entry that contributes to a Roadmap item should link back to it, e.g. "part of
-[[*Enable hourly rates and billing calculation for projects][Enable hourly
-rates and billing calculation for projects]]"; entries with no matching epic
-just stand alone.
+This is the single source of truth for product work and specification.  Roadmap items are epics:
+they only flip from TODO to DONE in place once fully delivered, and are never moved out of the
+Roadmap. The [[*Changelog][Changelog]] accumulates independently — one entry per session or PR-sized unit of shipped
+work, at whatever granularity that naturally comes in, so several Changelog entries can land under
+one Roadmap epic before it's complete. A Changelog entry that contributes to a Roadmap item should
+link back to it, e.g. "part of [[*Enable hourly rates and billing calculation for projects][Enable hourly rates and billing calculation for projects]]"; entries
+with no matching epic just stand alone.
 
 ** Features Overview
 The application offers the following features for free:
@@ -28,63 +24,56 @@ The application offers the following features for free:
 
 ** Roadmap
 
-Open (TODO) items are listed first, in priority order, highest priority
-first. Completed (DONE) items are kept at the end of the list,
-chronologically by creation date, rather than mixed in with what's still
-open.
+Open (TODO) items are listed first, in priority order, highest priority first. Completed (DONE)
+items are kept at the end of the list, chronologically by creation date, rather than mixed in with
+what's still open.
 
 *** TODO Harden auth/session security
 :PROPERTIES:
 :CREATED: [2026-08-19 Wed]
 :END:
-Smaller, independent hardening items found while investigating the
-re-login problem above — not required to fix session persistence, but
-cheap to do alongside it. See [[*Login / Auth Design][Login / Auth Design]]
-for detail:
-- Logout is a GET route despite its own doc comment saying POST, making it
-  triggerable cross-site (e.g. via an `<img>` tag on another page).
-- Session cookie has no explicit `sameSite`, and the app has no CSRF token
-  protection elsewhere either.
-- `SESSION_SECRET` silently falls back to a public, hardcoded string if
-  unset, instead of failing startup.
+Smaller, independent hardening items found while investigating the re-login problem above — not
+required to fix session persistence, but cheap to do alongside it. See [[*Login / Auth Design][Login / Auth Design]] for
+detail:
+- Logout is a GET route despite its own doc comment saying POST, making it triggerable cross-site
+  (e.g. via an `<img>` tag on another page).
+- Session cookie has no explicit `sameSite`, and the app has no CSRF token protection elsewhere
+  either.
+- `SESSION_SECRET` silently falls back to a public, hardcoded string if unset, instead of failing
+  startup.
 
 *** TODO Offline support
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
-Create, edit and delete sessions while offline, queued locally and synced once
-a connection is back — part of [[*PWA support][PWA support]]. The installed
-app shell already works offline for the static UI; this is what makes the
-data layer work offline too. Design and tradeoff analysis:
-[[*Offline Support Design][Offline Support Design]].
+Create, edit and delete sessions while offline, queued locally and synced once a connection is back
+— part of [[*PWA support][PWA support]]. The installed app shell already works offline for the static UI; this is what
+makes the data layer work offline too. Design and tradeoff analysis: [[*Offline Support Design][Offline Support Design]].
 
 **** DONE Phase 1 — Read-only offline cache
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
-Cache the last-synced user, projects, and tracking events in IndexedDB, and
-fall back to that cache instead of a dead end when the network is down.
+Cache the last-synced user, projects, and tracking events in IndexedDB, and fall back to that cache
+instead of a dead end when the network is down.
 
 **** DONE Phase 2 — Offline session creation
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
-Queue timer-stop/create-event calls locally when offline, applied
-optimistically with a temp local ID, synced once back online; add a small
-"offline / N pending changes" UI indicator.
+Queue timer-stop/create-event calls locally when offline, applied optimistically with a temp local
+ID, synced once back online; add a small "offline / N pending changes" UI indicator.
 
 **** DONE Phase 3 — Offline edit/delete of existing events
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
-Extend the queue to edits and deletes, including edits made to an event that
-is itself still an unsynced local-only creation from Phase 2. Also merge
-pending events into SessionsPage's list the way DashboardPage already does
-(deferred from Phase 2 — see the Changelog entry for that phase) — doing it
-correctly means reasoning about pagination and project-filter interaction
-(pending events only make sense on page 1, unfiltered), which belongs with
-this phase's edit/delete work anyway since both need the same "is this event
-still local-only" handling.
+Extend the queue to edits and deletes, including edits made to an event that is itself still an
+unsynced local-only creation from Phase 2. Also merge pending events into SessionsPage's list the
+way DashboardPage already does (deferred from Phase 2 — see the Changelog entry for that phase) —
+doing it correctly means reasoning about pagination and project-filter interaction (pending events
+only make sense on page 1, unfiltered), which belongs with this phase's edit/delete work anyway
+since both need the same "is this event still local-only" handling.
 
 **** DONE Phase 4 — Offline project creation                          :maybe:
 :PROPERTIES:
@@ -93,9 +82,8 @@ still local-only" handling.
 :LOGBOOK:
 - State "DONE"       from "TODO"       [2026-08-20 Thu 17:40]
 :END:
-Lower priority. Only creation is considered — offline edit/delete of
-projects is deferred indefinitely since projects are referenced by events
-and getting that wrong risks data integrity.
+Lower priority. Only creation is considered — offline edit/delete of projects is deferred
+indefinitely since projects are referenced by events and getting that wrong risks data integrity.
 
 *** TODO Push notifications
 :PROPERTIES:
@@ -146,23 +134,20 @@ and getting that wrong risks data integrity.
 :PROPERTIES:
 :CREATED: [2026-08-12 Wed]
 :END:
-Users can install Tempo to their phone or desktop home screen / app drawer via
-the browser's native install prompt. Once installed, it opens in its own
-standalone window (no browser chrome or URL bar) with a proper app icon, and
-the static app shell keeps working through brief network hiccups. This does
-not include offline creation of tracking events — starting/stopping the timer
-still requires a live connection; see "Offline support" below for that.
+Users can install Tempo to their phone or desktop home screen / app drawer via the browser's native
+install prompt. Once installed, it opens in its own standalone window (no browser chrome or URL bar)
+with a proper app icon, and the static app shell keeps working through brief network hiccups. This
+does not include offline creation of tracking events — starting/stopping the timer still requires a
+live connection; see "Offline support" below for that.
 
 *** DONE Extend login session duration / reduce forced re-logins
 :PROPERTIES:
 :CREATED: [2026-08-19 Wed]
 :END:
-Users are being logged out and asked to re-authenticate more often than
-expected, which has cost real data once already: a time-tracking session was
-lost when a forced re-login interrupted it (this predates
-[[*Offline support][Offline support]], which would likely prevent a
-recurrence today, but doesn't address the underlying cause). See
-[[*Login / Auth Design][Login / Auth Design]].
+Users are being logged out and asked to re-authenticate more often than expected, which has cost
+real data once already: a time-tracking session was lost when a forced re-login interrupted it (this
+predates [[*Offline support][Offline support]], which would likely prevent a recurrence today, but doesn't address the
+underlying cause). See [[*Login / Auth Design][Login / Auth Design]].
 
 ** Offline Support Design
 :PROPERTIES:
@@ -171,62 +156,51 @@ recurrence today, but doesn't address the underlying cause). See
 Design and tradeoff analysis backing [[*Offline support][Offline support]] in the Roadmap.
 
 *** Problem
-The service worker added for [[*PWA support][PWA support]] only caches the static
-app shell (HTML/JS/CSS/icons), not API data. Offline, the shell loads but every
-data request (session check, event list, timer stop) fails — before this was
-diagnosed, a failed session check left the app on a blank screen indefinitely,
-since nothing handled that state (fixed separately — see the Changelog). There
-is currently no offline data story at all: no cached events to fall back to,
-and no way to create or edit a session without a live round trip to the
-backend.
+The service worker added for [[*PWA support][PWA support]] only caches the static app shell (HTML/JS/CSS/icons), not
+API data. Offline, the shell loads but every data request (session check, event list, timer stop)
+fails — before this was diagnosed, a failed session check left the app on a blank screen
+indefinitely, since nothing handled that state (fixed separately — see the Changelog). There is
+currently no offline data story at all: no cached events to fall back to, and no way to create or
+edit a session without a live round trip to the backend.
 
 *** Design decisions and tradeoffs
 
 **** Persistence: IndexedDB, not React state or localStorage
-In-memory state doesn't survive a page reload, a closed tab, or — especially
-relevant on mobile — iOS evicting a backgrounded PWA's process to reclaim
-memory. Since going offline can mean hours between "create a session" and
-"reconnect," anything queued for sync has to survive process death, which
-rules out plain React state.
+In-memory state doesn't survive a page reload, a closed tab, or — especially relevant on mobile —
+iOS evicting a backgrounded PWA's process to reclaim memory. Since going offline can mean hours
+between "create a session" and "reconnect," anything queued for sync has to survive process death,
+which rules out plain React state.
 
-localStorage (already used by [[file:frontend/src/context/timer.tsx][context/timer.tsx]]
-to persist the currently-running timer) was considered and rejected for the
-*queue and cache*, though it remains the right choice for that one small
-object: it's synchronous (blocks the main thread), string-only (manual JSON
-(de)serialization per record), capped around 5–10MB, and has no query/index
-support. IndexedDB is async, stores structured objects natively, has a much
-larger origin-based quota, and supports indexed lookups — needed once we're
-storing potentially hundreds of cached events plus an ordered mutation queue.
+localStorage (already used by [[file:frontend/src/context/timer.tsx][context/timer.tsx]] to persist the currently-running timer) was
+considered and rejected for the *queue and cache*, though it remains the right choice for that one
+small object: it's synchronous (blocks the main thread), string-only (manual JSON (de)serialization
+per record), capped around 5–10MB, and has no query/index support. IndexedDB is async, stores
+structured objects natively, has a much larger origin-based quota, and supports indexed lookups —
+needed once we're storing potentially hundreds of cached events plus an ordered mutation queue.
 
 **** Sync trigger: 'online' event + on-load check, not the Background Sync API
-The Background Sync API would let queued writes sync even after the tab is
-closed, but browser support is inconsistent and notably weak/absent on iOS
-Safari — the platform this app is actually installed on as a PWA today.
-Syncing only while the app is open (on load, and on the browser's 'online'
-event) is simpler, more predictable, and doesn't silently depend on a
-capability that may not exist on the user's device.
+The Background Sync API would let queued writes sync even after the tab is closed, but browser
+support is inconsistent and notably weak/absent on iOS Safari — the platform this app is actually
+installed on as a PWA today.  Syncing only while the app is open (on load, and on the browser's
+'online' event) is simpler, more predictable, and doesn't silently depend on a capability that may
+not exist on the user's device.
 
 **** Conflict handling: surface and stop, no auto-merge
-The backend rejects overlapping sessions server-side
-([[file:backend/src/tracking/tracking.service.ts][tracking.service.ts]]'s
-assertNoOverlap). If a queued item is rejected on sync (409 overlap, 404 not
-found because the referenced project or event was deleted elsewhere, etc.),
-the queue stops draining at that item and the conflict is surfaced clearly in
-the UI rather than dropped or auto-resolved. Tracking events are scoped per
-user account, and each account is still only used by one person across their
-own devices (see README's Access Control section), so building real
-multi-device merge logic isn't worth the complexity it would add — a human
-resolving an occasional conflict manually is an acceptable tradeoff here.
+The backend rejects overlapping sessions server-side ([[file:backend/src/tracking/tracking.service.ts][tracking.service.ts]]'s assertNoOverlap). If a
+queued item is rejected on sync (409 overlap, 404 not found because the referenced project or event
+was deleted elsewhere, etc.), the queue stops draining at that item and the conflict is surfaced
+clearly in the UI rather than dropped or auto-resolved. Tracking events are scoped per user account,
+and each account is still only used by one person across their own devices (see README's Access
+Control section), so building real multi-device merge logic isn't worth the complexity it would add
+— a human resolving an occasional conflict manually is an acceptable tradeoff here.
 
 **** Scope boundaries
-Deliberately deferred or out of scope: offline *editing or deleting* of
-projects (only offline *creation* is considered, and only in Phase 4 — see
-above); any cross-device automatic conflict resolution; and the Background
-Sync API (see above).
+Deliberately deferred or out of scope: offline *editing or deleting* of projects (only offline
+*creation* is considered, and only in Phase 4 — see above); any cross-device automatic conflict
+resolution; and the Background Sync API (see above).
 
 *** Phases
-See the subtasks under [[*Offline support][Offline support]] in the Roadmap for
-the phase breakdown and status.
+See the subtasks under [[*Offline support][Offline support]] in the Roadmap for the phase breakdown and status.
 
 ** Login / Auth Design
 :PROPERTIES:
@@ -235,72 +209,52 @@ the phase breakdown and status.
 Design context backing [[*Extend login session duration / reduce forced re-logins][Extend login session duration / reduce forced re-logins]] in the Roadmap.
 
 *** Current architecture
-Authentication is Google OAuth 2.0 via Passport
-([[file:backend/src/auth/google.strategy.ts][google.strategy.ts]]), backed by
-a server-side session — not a client-held JWT. The frontend never sees a
-token: it authenticates by sending the `connect.sid` cookie automatically
-(`credentials: "include"` in
-[[file:frontend/src/api/client.ts][api/client.ts]]) and checks login state by
-calling `GET /auth/me` on load
-([[file:frontend/src/hooks/useAuth.ts][hooks/useAuth.ts]]). A confirmed 401
-routes the user to =/login=; a network/5xx error with a cached user instead
-shows a "can't reach Tempo" retry screen, so being offline isn't confused
-with being logged out
-([[file:frontend/src/layouts/AppLayout.tsx][AppLayout.tsx]]).
+Authentication is Google OAuth 2.0 via Passport ([[file:backend/src/auth/google.strategy.ts][google.strategy.ts]]), backed by a server-side
+session — not a client-held JWT. The frontend never sees a token: it authenticates by sending the
+`connect.sid` cookie automatically (`credentials: "include"` in [[file:frontend/src/api/client.ts][api/client.ts]]) and checks login
+state by calling `GET /auth/me` on load ([[file:frontend/src/hooks/useAuth.ts][hooks/useAuth.ts]]). A confirmed 401 routes the user to
+=/login=; a network/5xx error with a cached user instead shows a "can't reach Tempo" retry screen,
+so being offline isn't confused with being logged out ([[file:frontend/src/layouts/AppLayout.tsx][AppLayout.tsx]]).
 
-Sessions live server-side via `express-session`
-([[file:backend/src/main.ts][main.ts]]), persisted to a SQLite file
-(`connect-sqlite3`) in the same Docker volume as the app database, so a
-backend restart/redeploy no longer wipes active sessions. The `connect.sid`
-cookie is `httpOnly`, `secure` in production, has a 7-day `maxAge`, and now
-uses `rolling: true` so active use keeps extending the cookie instead of
-logging someone out mid-session. There is still no refresh-token mechanism
-(none needed — it's a plain server session, not a JWT). Only `user_id` is
-serialized into the session
-([[file:backend/src/auth/session.serializer.ts][session.serializer.ts]]); the
-full user is re-hydrated from the DB on every request. `SESSION_SECRET` is
-now required in production — the process refuses to start rather than
-silently signing sessions with a guessable default.
+Sessions live server-side via `express-session` ([[file:backend/src/main.ts][main.ts]]), persisted to a SQLite file
+(`connect-sqlite3`) in the same Docker volume as the app database, so a backend restart/redeploy no
+longer wipes active sessions. The `connect.sid` cookie is `httpOnly`, `secure` in production, has a
+7-day `maxAge`, and now uses `rolling: true` so active use keeps extending the cookie instead of
+logging someone out mid-session. There is still no refresh-token mechanism (none needed — it's a
+plain server session, not a JWT). Only `user_id` is serialized into the session
+([[file:backend/src/auth/session.serializer.ts][session.serializer.ts]]); the full user is re-hydrated from the DB on every request. `SESSION_SECRET`
+is now required in production — the process refuses to start rather than silently signing sessions
+with a guessable default.
 
 *** Problem (resolved)
-Users were being asked to log back in more often than the 7-day cookie
-lifetime alone would suggest. The cause was that every backend
-restart/redeploy wiped the in-memory `memorystore` session store, silently
-invalidating all sessions regardless of cookie age. This had already cost
-real data once: a time-tracking session was lost when a forced re-login
-interrupted it. That incident predates
-[[*Offline support][Offline support]], which would likely prevent a
-recurrence today by queuing the in-flight change locally, but offline
-support didn't address the underlying cause of the frequent logouts
-themselves. The app now has multiple real users (friends, not just the
-product owner — see README's Access Control section), so an in-memory
-session store forcing everyone out on every redeploy was a bigger blast
-radius than it used to be. Fixed by moving to a persistent SQLite-backed
-session store — see the Changelog entry under
-[[*Extend login session duration / reduce forced re-logins][Extend login
-session duration / reduce forced re-logins]].
+Users were being asked to log back in more often than the 7-day cookie lifetime alone would
+suggest. The cause was that every backend restart/redeploy wiped the in-memory `memorystore` session
+store, silently invalidating all sessions regardless of cookie age. This had already cost real data
+once: a time-tracking session was lost when a forced re-login interrupted it. That incident predates
+[[*Offline support][Offline support]], which would likely prevent a recurrence today by queuing the in-flight change
+locally, but offline support didn't address the underlying cause of the frequent logouts
+themselves. The app now has multiple real users (friends, not just the product owner — see README's
+Access Control section), so an in-memory session store forcing everyone out on every redeploy was a
+bigger blast radius than it used to be. Fixed by moving to a persistent SQLite-backed session store
+— see the Changelog entry under [[*Extend login session duration / reduce forced re-logins][Extend login session duration / reduce forced re-logins]].
 
 *** Open questions
-- Move to a persistent session store. The app currently runs on SQLite
-  ([[file:backend/src/app.module.ts][app.module.ts]]), not Postgres, so the
-  lowest-risk fix is a SQLite/TypeORM-backed session store (e.g.
-  `connect-sqlite3` or `connect-typeorm`) pointed at the same persisted
-  Docker volume as the main DB — not a full migration to Postgres, which
-  the README lists as a possible *future* infra change but which isn't
+- Move to a persistent session store. The app currently runs on SQLite ([[file:backend/src/app.module.ts][app.module.ts]]), not
+  Postgres, so the lowest-risk fix is a SQLite/TypeORM-backed session store (e.g.  `connect-sqlite3`
+  or `connect-typeorm`) pointed at the same persisted Docker volume as the main DB — not a full
+  migration to Postgres, which the README lists as a possible *future* infra change but which isn't
   needed just to fix session persistence.
-- Consider extending `maxAge` and/or enabling rolling sessions so active use
-  keeps extending the cookie lifetime.
-- Access is optionally gated by a single `ALLOWED_EMAIL`
-  ([[file:backend/src/auth/auth.service.ts][auth.service.ts]]); with actual
-  friends using the app under their own Google accounts, revisit whether that
-  single-email allowlist is still the right access control model, independent
-  of the session-duration fix.
+- Consider extending `maxAge` and/or enabling rolling sessions so active use keeps extending the
+  cookie lifetime.
+- Access is optionally gated by a single `ALLOWED_EMAIL` ([[file:backend/src/auth/auth.service.ts][auth.service.ts]]); with actual friends
+  using the app under their own Google accounts, revisit whether that single-email allowlist is
+  still the right access control model, independent of the session-duration fix.
 
 *** Session store options: connect-sqlite3 vs connect-typeorm
 
-Both point the session store at the same SQLite file already used for the
-app DB (persisted in the existing Docker volume), so either fixes the
-restart/redeploy data loss. They differ in integration style:
+Both point the session store at the same SQLite file already used for the app DB (persisted in the
+existing Docker volume), so either fixes the restart/redeploy data loss. They differ in integration
+style:
 
 | | =connect-sqlite3= | =connect-typeorm= |
 |---|---|---|
@@ -325,38 +279,30 @@ single-replica note in the Migration plan below).
 
 *** Migration plan (done)
 
-- [X] Add =connect-sqlite3= (and =@types/connect-sqlite3=) to
-  =backend/package.json=.
-- [X] Point the store at a file inside the same persisted Docker volume the
-  main DB already uses, so it survives restarts/redeploys the same way.
-- [X] Swap =memorystore= for the new store in
-  [[file:backend/src/main.ts][main.ts]], keeping the same cookie
-  options.
-- [X] Make =SESSION_SECRET= required in production instead of silently
-  defaulting to a hardcoded string ("=change-me-in-production=", which was
-  misleading since it named production but was only ever reachable outside
-  it even before this fix — renamed to
-  =local-dev-only-secret-not-for-production= for clarity) — bundled in
-  here since it's touching the same session setup code (the broader
-  hardening pass is tracked separately under
-  [[*Harden auth/session security][Harden auth/session security]]).
-- [X] Add =rolling: true= so active users don't get logged out mid-use
-  before the 7-day mark.
-- [X] Verify locally: log in, restart the backend process, confirm the
-  session survives on the same cookie.
-- [X] Update the README (Security section, and the "swap SQLite for
-  Postgres" note that previously implied the session fix required a full DB
-  migration).
-- [X] Note the remaining limit: still single-replica only (a SQLite-file
-  store can't be shared across multiple backend containers) — out of scope
-  unless/until scaling beyond one container is needed.
+- [X] Add =connect-sqlite3= (and =@types/connect-sqlite3=) to =backend/package.json=.
+- [X] Point the store at a file inside the same persisted Docker volume the main DB already uses, so
+  it survives restarts/redeploys the same way.
+- [X] Swap =memorystore= for the new store in [[file:backend/src/main.ts][main.ts]], keeping the same cookie options.
+- [X] Make =SESSION_SECRET= required in production instead of silently defaulting to a hardcoded
+  string ("=change-me-in-production=", which was misleading since it named production but was only
+  ever reachable outside it even before this fix — renamed to
+  =local-dev-only-secret-not-for-production= for clarity) — bundled in here since it's touching the
+  same session setup code (the broader hardening pass is tracked separately under [[*Harden auth/session security][Harden
+  auth/session security]]).
+- [X] Add =rolling: true= so active users don't get logged out mid-use before the 7-day mark.
+- [X] Verify locally: log in, restart the backend process, confirm the session survives on the same
+  cookie.
+- [X] Update the README (Security section, and the "swap SQLite for Postgres" note that previously
+  implied the session fix required a full DB migration).
+- [X] Note the remaining limit: still single-replica only (a SQLite-file store can't be shared
+  across multiple backend containers) — out of scope unless/until scaling beyond one container is
+  needed.
 
 ** Compatibility
-Tempo is a web application which can be used easily on mobile screens. It would
-be of great benefit to have it as an app both in desktop and mobile devices, but
-the team currently doesn't have the bandwidth to implement or maintain such
-varied implementations. For now, it will continue to be a web application — the
-roadmap includes making it installable as a progressive web app on mobile
+Tempo is a web application which can be used easily on mobile screens. It would be of great benefit
+to have it as an app both in desktop and mobile devices, but the team currently doesn't have the
+bandwidth to implement or maintain such varied implementations. For now, it will continue to be a
+web application — the roadmap includes making it installable as a progressive web app on mobile
 devices (see [[*Roadmap][Roadmap]]).
 
 ** Changelog
@@ -370,86 +316,67 @@ Completed work items, newest first. Merged in from the old TODO.org scratch file
 Part of [[*Phase 4 — Offline project creation][Phase 4 — Offline project
 creation]] under [[*Offline support][Offline support]].
 
-Two designs were considered and rejected before landing on this one. First,
-keeping project creation inline in [[file:frontend/src/components/Timer.tsx][Timer.tsx]]'s
-"+ New" toggle and queuing it offline alongside the tracking-event queue,
-rewriting any dependent queued event's =project_id= once the project synced
-— rejected as unnecessary machinery (a new local-id namespace, dependency
-rewriting in =drainQueue=) for a rare case. Second, moving creation to
-[[file:frontend/src/pages/ProjectsPage.tsx][ProjectsPage.tsx]] but still
-queuing it through the same offline-queue infrastructure as tracking events
-— rejected because a queued-but-unsynced project can't actually be used yet
-(the Timer's project picker only ever offers already-synced projects, and
-nothing merges pending projects into it), so queuing bought nothing over
-just failing clearly and retrying once back online.
+Two designs were considered and rejected before landing on this one. First, keeping project creation
+inline in [[file:frontend/src/components/Timer.tsx][Timer.tsx]]'s "+ New" toggle and queuing it offline alongside the tracking-event queue,
+rewriting any dependent queued event's =project_id= once the project synced — rejected as
+unnecessary machinery (a new local-id namespace, dependency rewriting in =drainQueue=) for a rare
+case. Second, moving creation to [[file:frontend/src/pages/ProjectsPage.tsx][ProjectsPage.tsx]] but still queuing it through the same
+offline-queue infrastructure as tracking events — rejected because a queued-but-unsynced project
+can't actually be used yet (the Timer's project picker only ever offers already-synced projects, and
+nothing merges pending projects into it), so queuing bought nothing over just failing clearly and
+retrying once back online.
 
-What shipped instead needed no new queue infrastructure at all: a session
-can already be logged with no project attached (offline-queueable via the
-existing Phase 2 event queue), and reattributing a session to a project
-afterwards is already supported by Phase 3's offline-edit flow
-(=queueEventUpdate=). So the realistic offline workflow — work without a
-project while offline, create the project once back online, then edit the
-session(s) to attach it — was already fully covered. This phase is
-therefore just a relocation: project creation moved off the Timer (removing
-its inline "+ New" toggle and the =onProjectCreated= callback plumbing
-through [[file:frontend/src/pages/DashboardPage.tsx][DashboardPage.tsx]])
-and onto ProjectsPage as its own explicitly online-only action, disabled
-with a clear inline message (gated on the existing
-[[file:frontend/src/context/onlineStatus.tsx][useOnlineStatus]] context)
-rather than letting the user submit something guaranteed to fail. No
-backend changes.
+What shipped instead needed no new queue infrastructure at all: a session can already be logged with
+no project attached (offline-queueable via the existing Phase 2 event queue), and reattributing a
+session to a project afterwards is already supported by Phase 3's offline-edit flow
+(=queueEventUpdate=). So the realistic offline workflow — work without a project while offline,
+create the project once back online, then edit the session(s) to attach it — was already fully
+covered. This phase is therefore just a relocation: project creation moved off the Timer (removing
+its inline "+ New" toggle and the =onProjectCreated= callback plumbing through [[file:frontend/src/pages/DashboardPage.tsx][DashboardPage.tsx]])
+and onto ProjectsPage as its own explicitly online-only action, disabled with a clear inline message
+(gated on the existing [[file:frontend/src/context/onlineStatus.tsx][useOnlineStatus]] context) rather than letting the user submit something
+guaranteed to fail. No backend changes.
 
 *** DONE Move session store off in-memory memorystore
 :PROPERTIES:
 :CREATED: [2026-08-19 Wed]
 :END:
-Part of [[*Extend login session duration / reduce forced re-logins][Extend
-login session duration / reduce forced re-logins]]. Root cause of the
-frequent-relogin problem: every backend restart/redeploy wiped
-`memorystore`'s in-process session data, invalidating every active session
-regardless of the 7-day cookie `maxAge`. Replaced it with `connect-sqlite3`
-([[file:backend/src/main.ts][main.ts]]), storing sessions in a
-`sessions.sqlite` file next to the app database in the same persisted Docker
-volume — chosen over `connect-typeorm` for being actively maintained and for
-keeping the session table outside TypeORM's `synchronize: true` schema
-management (see the comparison in
-[[*Login / Auth Design][Login / Auth Design]]). Also added `rolling: true`
-so active use extends the cookie instead of expiring mid-session, and made
-`SESSION_SECRET` required in production instead of silently falling back to
-a hardcoded default. Verified locally by logging in, killing the backend
-process, restarting it, and confirming the same cookie still authenticated.
-Note this doesn't enable multiple backend replicas — a SQLite file still
-can't be shared across containers; that's unchanged from before.
+Part of [[*Extend login session duration / reduce forced re-logins][Extend login session duration / reduce forced re-logins]]. Root cause of the frequent-relogin
+problem: every backend restart/redeploy wiped `memorystore`'s in-process session data, invalidating
+every active session regardless of the 7-day cookie `maxAge`. Replaced it with `connect-sqlite3`
+([[file:backend/src/main.ts][main.ts]]), storing sessions in a `sessions.sqlite` file next to the app database in the same
+persisted Docker volume — chosen over `connect-typeorm` for being actively maintained and for
+keeping the session table outside TypeORM's `synchronize: true` schema management (see the
+comparison in [[*Login / Auth Design][Login / Auth Design]]). Also added `rolling: true` so active use extends the cookie
+instead of expiring mid-session, and made `SESSION_SECRET` required in production instead of
+silently falling back to a hardcoded default. Verified locally by logging in, killing the backend
+process, restarting it, and confirming the same cookie still authenticated.  Note this doesn't
+enable multiple backend replicas — a SQLite file still can't be shared across containers; that's
+unchanged from before.
 
 *** DONE Badge unsynced sessions inline instead of leaving them indistinguishable
 :PROPERTIES:
 :CREATED: [2026-08-18 Tue]
 :END:
-Follow-up to [[*Phase 3 — Offline edit/delete of existing events][Phase 3 —
-Offline edit/delete of existing events]] below. A session with an unsynced
-change (still-queued creation, or a synced event with a queued edit) looked
-identical to a fully-committed one in the list — only the page-level "N
-changes pending sync" banner hinted anything was queued, with no way to tell
-*which* session(s). Considered a separate "not yet synced" section, but
-pagination already got complicated enough in Phase 3 (pending creates only
-merge onto an unfiltered page 1) — splitting into two lists would mean
-keeping them in sync as items drain mid-list on any page, for a
-comparatively small clarity win.
+Follow-up to [[*Phase 3 — Offline edit/delete of existing events][Phase 3 — Offline edit/delete of existing events]] below. A session with an unsynced
+change (still-queued creation, or a synced event with a queued edit) looked identical to a
+fully-committed one in the list — only the page-level "N changes pending sync" banner hinted
+anything was queued, with no way to tell *which* session(s). Considered a separate "not yet synced"
+section, but pagination already got complicated enough in Phase 3 (pending creates only merge onto
+an unfiltered page 1) — splitting into two lists would mean keeping them in sync as items drain
+mid-list on any page, for a comparatively small clarity win.
 
-Instead, utils/offlineQueue.ts's reactive queue status
-(useQueueStatus/QueueStatus) grew a third field, pendingIds — a Set of every
-id with something queued against it (a still-unsynced creation's own local
-id, or a synced event's id if it has a queued edit; a queued delete doesn't
-need an entry since applyPendingChanges already filters that event out of
-the list entirely), recomputed by refreshPendingCount() alongside
-pendingCount so it inherits the same reactivity and self-corrects the moment
-a drain completes — no extra plumbing needed in the pages beyond reading it.
-EventLog.tsx takes it as an optional pendingIds prop and renders a small
-"Not synced" pill in an item's meta row (next to the project tag) when its id
-is a member; DashboardPage and SessionsPage both just pass
-useQueueStatus().pendingIds straight through. Added badge assertions to two
-of the Phase 3 e2e cases (queued creation, queued edit) confirming the badge
-appears while offline and disappears once the change has synced.
+Instead, utils/offlineQueue.ts's reactive queue status (useQueueStatus/QueueStatus) grew a third
+field, pendingIds — a Set of every id with something queued against it (a still-unsynced creation's
+own local id, or a synced event's id if it has a queued edit; a queued delete doesn't need an entry
+since applyPendingChanges already filters that event out of the list entirely), recomputed by
+refreshPendingCount() alongside pendingCount so it inherits the same reactivity and self-corrects
+the moment a drain completes — no extra plumbing needed in the pages beyond reading it.
+EventLog.tsx takes it as an optional pendingIds prop and renders a small "Not synced" pill in an
+item's meta row (next to the project tag) when its id is a member; DashboardPage and SessionsPage
+both just pass useQueueStatus().pendingIds straight through. Added badge assertions to two of the
+Phase 3 e2e cases (queued creation, queued edit) confirming the badge appears while offline and
+disappears once the change has synced.
 
 *** DONE Phase 3 — Offline edit/delete of existing events
 :PROPERTIES:
@@ -458,62 +385,50 @@ appears while offline and disappears once the change has synced.
 Part of [[*Phase 3 — Offline edit/delete of existing events][Phase 3 — Offline
 edit/delete of existing events]] under [[*Offline support][Offline support]].
 
-utils/offlineQueue.ts's queue now holds three op types instead of just
-creates: 'create' (unchanged from Phase 2), 'update' (targets a real
-server-side event id with a full replacement payload), and 'delete' (targets
-a real server-side event id). Old Phase 2 entries predate the 'type' field —
+utils/offlineQueue.ts's queue now holds three op types instead of just creates: 'create' (unchanged
+from Phase 2), 'update' (targets a real server-side event id with a full replacement payload), and
+'delete' (targets a real server-side event id). Old Phase 2 entries predate the 'type' field —
 getAllEntries() treats a typeless entry as a create for backward
-compatibility. queueEventUpdate/queueEventDelete special-case editing or
-deleting an event that is itself still a queued, not-yet-synced Phase 2
-creation (a local-<uuid> id): there's nothing server-side to target yet, so
-an edit is folded straight into the 'create' entry's payload (replacing it
-entirely — only the final desired state matters) and a delete just drops
-that 'create' entry from the queue outright, rather than ever producing a
-separate 'update'/'delete' op with a local id as its target. A second edit to
-the same already-synced target before the first one drains also replaces the
-queued 'update' payload rather than stacking a second op; a delete queued
-after a pending update drops that update first, since it's moot once the
-event is gone. This means by the time drainQueue() runs, every 'update' and
-'delete' entry is guaranteed to carry a real server id — drainQueue() PATCHes
-or DELETEs accordingly, still stopping and recording a conflict on the first
-real rejection (e.g. a 409 overlap or a 404 because the target was deleted
-elsewhere), per the same "surface and stop" policy as Phase 2.
+compatibility. queueEventUpdate/queueEventDelete special-case editing or deleting an event that is
+itself still a queued, not-yet-synced Phase 2 creation (a local-<uuid> id): there's nothing
+server-side to target yet, so an edit is folded straight into the 'create' entry's payload
+(replacing it entirely — only the final desired state matters) and a delete just drops that 'create'
+entry from the queue outright, rather than ever producing a separate 'update'/'delete' op with a
+local id as its target. A second edit to the same already-synced target before the first one drains
+also replaces the queued 'update' payload rather than stacking a second op; a delete queued after a
+pending update drops that update first, since it's moot once the event is gone. This means by the
+time drainQueue() runs, every 'update' and 'delete' entry is guaranteed to carry a real server id —
+drainQueue() PATCHes or DELETEs accordingly, still stopping and recording a conflict on the first
+real rejection (e.g. a 409 overlap or a 404 because the target was deleted elsewhere), per the same
+"surface and stop" policy as Phase 2.
 
-SyncConflict dropped its `event` field — update/delete conflicts have no full
-TrackingEvent to show (only a patch or a bare id), and the banner only ever
-rendered `conflict.error.message` anyway.
+SyncConflict dropped its `event` field — update/delete conflicts have no full TrackingEvent to show
+(only a patch or a bare id), and the banner only ever rendered `conflict.error.message` anyway.
 
-DashboardPage and SessionsPage's onUpdate/onDelete now mirror Timer.tsx's
-Phase 2 pattern: an edit/delete on a still-local-only event goes straight to
-queueEventUpdate/queueEventDelete (online or offline — there's no server
-copy to call), and one on a real synced event tries the real PATCH/DELETE
-first, falling back to the queue only on a network-level failure (a real
-ApiError, e.g. an overlap or validation error, still surfaces as today).
+DashboardPage and SessionsPage's onUpdate/onDelete now mirror Timer.tsx's Phase 2 pattern: an
+edit/delete on a still-local-only event goes straight to queueEventUpdate/queueEventDelete (online
+or offline — there's no server copy to call), and one on a real synced event tries the real
+PATCH/DELETE first, falling back to the queue only on a network-level failure (a real ApiError,
+e.g. an overlap or validation error, still surfaces as today).
 
-Added getPendingChanges() (creates/updates/deletes snapshot) and
-applyPendingChanges() (filters queued deletes and overlays queued edits onto
-a fetched list, resolving project_id against the caller's already-loaded
-projects rather than the response cache) to utils/offlineQueue.ts, and wired
-both pages through them. This finally gives SessionsPage the pending-merge
-DashboardPage got in Phase 2 (deferred at the time — see that entry below):
-pending *creates* are only merged onto an unfiltered page 1, since a brand
-new session has no real position in a paginated/filtered server list, but
-pending *edits and deletes* apply regardless of page or filter, since the
-event they target can be sitting anywhere. getPendingEvents() was renamed to
-getPendingCreates() to make that distinction explicit now that "pending"
-covers three different kinds of change.
+Added getPendingChanges() (creates/updates/deletes snapshot) and applyPendingChanges() (filters
+queued deletes and overlays queued edits onto a fetched list, resolving project_id against the
+caller's already-loaded projects rather than the response cache) to utils/offlineQueue.ts, and wired
+both pages through them. This finally gives SessionsPage the pending-merge DashboardPage got in
+Phase 2 (deferred at the time — see that entry below): pending *creates* are only merged onto an
+unfiltered page 1, since a brand new session has no real position in a paginated/filtered server
+list, but pending *edits and deletes* apply regardless of page or filter, since the event they
+target can be sitting anywhere. getPendingEvents() was renamed to getPendingCreates() to make that
+distinction explicit now that "pending" covers three different kinds of change.
 
-Extended offlineQueue.test.ts with cases for both queue-folding behaviors
-(edit/delete of a still-queued creation), update/delete op upserts and their
-drainQueue POST/PATCH/DELETE dispatch, and applyPendingChanges' filter+patch
-behavior. Added three e2e cases to offline.spec.ts: editing a synced session
-offline, deleting one offline, and editing a session that is itself still an
-unsynced creation — all asserting the change survives a reload once
-reachable again. Also renamed the existing "N session(s) pending sync"
-wording to "N change(s) pending sync", since the indicator now counts edits
-and deletes too, not just new sessions — matching the "N pending changes"
-phrasing this indicator was described with when first introduced in Phase 2
-above.
+Extended offlineQueue.test.ts with cases for both queue-folding behaviors (edit/delete of a
+still-queued creation), update/delete op upserts and their drainQueue POST/PATCH/DELETE dispatch,
+and applyPendingChanges' filter+patch behavior. Added three e2e cases to offline.spec.ts: editing a
+synced session offline, deleting one offline, and editing a session that is itself still an unsynced
+creation — all asserting the change survives a reload once reachable again. Also renamed the
+existing "N session(s) pending sync" wording to "N change(s) pending sync", since the indicator now
+counts edits and deletes too, not just new sessions — matching the "N pending changes" phrasing this
+indicator was described with when first introduced in Phase 2 above.
 
 *** DONE Phase 2 — Offline session creation
 :PROPERTIES:
@@ -522,153 +437,128 @@ above.
 Part of [[*Phase 2 — Offline session creation][Phase 2 — Offline session
 creation]] under [[*Offline support][Offline support]].
 
-Added utils/offlineQueue.ts — its own IndexedDB database (separate from the
-Phase 1 response cache; different concern, a durable ordered write queue, not
-a keyed response cache). queueEventCreate() stores a pending create and
-returns an optimistic TrackingEvent immediately (local-<uuid> id, project
-name resolved from the Phase 1 projects cache). getPendingEvents() lets pages
-merge not-yet-synced events into what they render, including after a reload.
-drainQueue() is the sync engine: POSTs queued items in order, stops at the
-first real rejection (ApiError, e.g. a 409 overlap) and records it as a
-conflict rather than dropping or skipping it — the documented "surface and
-stop" policy — and stops silently on a renewed network failure to retry
-later. Guarded against concurrent calls, since two drains running at once
-could double-POST the same item.
+Added utils/offlineQueue.ts — its own IndexedDB database (separate from the Phase 1 response cache;
+different concern, a durable ordered write queue, not a keyed response cache). queueEventCreate()
+stores a pending create and returns an optimistic TrackingEvent immediately (local-<uuid> id,
+project name resolved from the Phase 1 projects cache). getPendingEvents() lets pages merge
+not-yet-synced events into what they render, including after a reload.  drainQueue() is the sync
+engine: POSTs queued items in order, stops at the first real rejection (ApiError, e.g. a 409
+overlap) and records it as a conflict rather than dropping or skipping it — the documented "surface
+and stop" policy — and stops silently on a renewed network failure to retry later. Guarded against
+concurrent calls, since two drains running at once could double-POST the same item.
 
-Timer.tsx's handleStop tries tracking.log() first; a real ApiError still
-surfaces as today, but a network-level failure falls back to
-queueEventCreate() instead, so the UI treats it as a normal save either way.
-client.ts's request() is now exported so App.tsx can pass it into
-drainQueue(), since synthesizing an optimistic response needs the raw
-request — this couldn't be centralized inside request() itself the way
-Phase 1's GET cache was, because building a valid optimistic TrackingEvent
-needs domain knowledge request() doesn't have. drainQueue() takes the
-request function as a parameter (a RequestFn type it defines itself) rather
-than importing client.ts directly, so offlineQueue.ts stays agnostic of that
-module's concrete implementation — only ApiError is still imported, for the
-conflict-detection instanceof check. Tests inject a mock function directly
-instead of stubbing global fetch.
+Timer.tsx's handleStop tries tracking.log() first; a real ApiError still surfaces as today, but a
+network-level failure falls back to queueEventCreate() instead, so the UI treats it as a normal save
+either way.  client.ts's request() is now exported so App.tsx can pass it into drainQueue(), since
+synthesizing an optimistic response needs the raw request — this couldn't be centralized inside
+request() itself the way Phase 1's GET cache was, because building a valid optimistic TrackingEvent
+needs domain knowledge request() doesn't have. drainQueue() takes the request function as a
+parameter (a RequestFn type it defines itself) rather than importing client.ts directly, so
+offlineQueue.ts stays agnostic of that module's concrete implementation — only ApiError is still
+imported, for the conflict-detection instanceof check. Tests inject a mock function directly instead
+of stubbing global fetch.
 
-DashboardPage merges pending events into its list, deduplicating by
-(started_at, stopped_at) against the synced list — needed because
-drainQueue() can finish syncing an item in the background between this
-page's own fetch and its queue read finishing, which could otherwise show
-the same session twice. SessionsPage does NOT get this merge — doing it
-correctly there means reasoning about pagination and project-filter
-interaction (pending events only make sense on page 1, unfiltered), which
-felt like real scope creep for a secondary page when the primary surface
-(Dashboard, where the Timer lives) was already covered; Phase 3 already
-needs to handle "this event is still local-only" more deeply for edit/delete,
-so consolidating that there is more honest than a partial fix now.
+DashboardPage merges pending events into its list, deduplicating by (started_at, stopped_at) against
+the synced list — needed because drainQueue() can finish syncing an item in the background between
+this page's own fetch and its queue read finishing, which could otherwise show the same session
+twice. SessionsPage does NOT get this merge — doing it correctly there means reasoning about
+pagination and project-filter interaction (pending events only make sense on page 1, unfiltered),
+which felt like real scope creep for a secondary page when the primary surface (Dashboard, where the
+Timer lives) was already covered; Phase 3 already needs to handle "this event is still local-only"
+more deeply for edit/delete, so consolidating that there is more honest than a partial fix now.
 
-The sync trigger (App.tsx's QueueSync) originally only reacted to
-navigator.onLine's 'online' event — but per the same navigator.onLine gap
-already identified for the banner, that event doesn't fire when a dead
-Wi-Fi uplink or throttled cellular data recovers either, so a drain could
-get permanently stuck with no retry. Fixed by also reacting to
-networkFailing (utils/networkStatus.ts) flipping back to false, which fires
-whenever any request actually succeeds again, catching the case
+The sync trigger (App.tsx's QueueSync) originally only reacted to navigator.onLine's 'online' event
+— but per the same navigator.onLine gap already identified for the banner, that event doesn't fire
+when a dead Wi-Fi uplink or throttled cellular data recovers either, so a drain could get
+permanently stuck with no retry. Fixed by also reacting to networkFailing (utils/networkStatus.ts)
+flipping back to false, which fires whenever any request actually succeeds again, catching the case
 navigator.onLine misses.
 
-The offline banner (AppLayout.tsx) now reflects queue status too: pending
-count while offline, "Syncing…" while online with items still draining, and
-a distinct (danger-colored) message when drainQueue records a conflict.
+The offline banner (AppLayout.tsx) now reflects queue status too: pending count while offline,
+"Syncing…" while online with items still draining, and a distinct (danger-colored) message when
+drainQueue records a conflict.
 
-Explicitly out of scope, matching what was already documented for this
-phase: editing/deleting a still-queued event, and creating a *new* project
-while offline as part of stopping the timer (that specific combined action
-still fails with today's error message — queuing project creation is Phase 4
-territory).
+Explicitly out of scope, matching what was already documented for this phase: editing/deleting a
+still-queued event, and creating a *new* project while offline as part of stopping the timer (that
+specific combined action still fails with today's error message — queuing project creation is Phase
+4 territory).
 
 *** DONE Drive the offline banner off real request failures, not just navigator.onLine
 :PROPERTIES:
 :CREATED: [2026-08-17 Mon]
 :END:
-Part of [[*Read-only offline cache][Read-only offline cache]] below. The
-"Offline — showing last synced data" banner only ever checked navigator.onLine
-via useOnlineStatus, which only reliably reflects "no network interface at
-all" (Airplane Mode, Wi-Fi off) — it stays "online" through a dead Wi-Fi
-uplink or exhausted/throttled cellular data, exactly the cases most likely to
-actually trigger the cache fallback in practice. So the banner could
-under-report: the app silently serving stale cached data with no indication
-to the user, in the more common real-world failure modes.
+Part of [[*Read-only offline cache][Read-only offline cache]] below. The "Offline — showing last synced data" banner only ever
+checked navigator.onLine via useOnlineStatus, which only reliably reflects "no network interface at
+all" (Airplane Mode, Wi-Fi off) — it stays "online" through a dead Wi-Fi uplink or
+exhausted/throttled cellular data, exactly the cases most likely to actually trigger the cache
+fallback in practice. So the banner could under-report: the app silently serving stale cached data
+with no indication to the user, in the more common real-world failure modes.
 
-Added utils/networkStatus.ts, a small module-level singleton (there's only
-ever one true answer for "is the network currently failing" for the whole
-app, so no Context needed here, unlike useOnlineStatus) tracking whether the
-last actual request reached the server, exposed to React via
-useSyncExternalStore. api/client.ts's request() now reports success/failure
-on every call, GET or write — reaching the server at all counts as success
-even for a reachable-but-erroring response (e.g. a 401), since that still
-proves connectivity is fine. AppLayout.tsx now shows the banner on
-`!browserOnline || networkFailing`, combining both signals: instant detection
-from the browser when available, self-correcting authoritative detection from
-real request outcomes otherwise. Added a permanent e2e test proving the
-motivating case directly — the banner shows while navigator.onLine stays
-true, with only the API requests failing.
+Added utils/networkStatus.ts, a small module-level singleton (there's only ever one true answer for
+"is the network currently failing" for the whole app, so no Context needed here, unlike
+useOnlineStatus) tracking whether the last actual request reached the server, exposed to React via
+useSyncExternalStore. api/client.ts's request() now reports success/failure on every call, GET or
+write — reaching the server at all counts as success even for a reachable-but-erroring response
+(e.g. a 401), since that still proves connectivity is fine. AppLayout.tsx now shows the banner on
+`!browserOnline || networkFailing`, combining both signals: instant detection from the browser when
+available, self-correcting authoritative detection from real request outcomes otherwise. Added a
+permanent e2e test proving the motivating case directly — the banner shows while navigator.onLine
+stays true, with only the API requests failing.
 
 *** DONE Turn useOnlineStatus into a context provider
 :PROPERTIES:
 :CREATED: [2026-08-17 Mon]
 :END:
-Part of [[*Read-only offline cache][Read-only offline cache]] below. The
-original useOnlineStatus was a plain hook — each call created its own
-independent useState plus its own online/offline window listener pair, so N
-components using it meant N redundant listeners and N separate re-renders
-instead of one shared value. Not a bug (each instance's listener cleanup was
-correctly scoped to itself), just wasteful, and it mattered now because a
-planned follow-up (driving an offline indicator off actual fetch failures,
-not just navigator.onLine) means more than one consumer of this state soon.
+Part of [[*Read-only offline cache][Read-only offline cache]] below. The original useOnlineStatus was a plain hook — each call
+created its own independent useState plus its own online/offline window listener pair, so N
+components using it meant N redundant listeners and N separate re-renders instead of one shared
+value. Not a bug (each instance's listener cleanup was correctly scoped to itself), just wasteful,
+and it mattered now because a planned follow-up (driving an offline indicator off actual fetch
+failures, not just navigator.onLine) means more than one consumer of this state soon.
 
-Replaced hooks/useOnlineStatus.ts with context/onlineStatus.tsx — same
-exported useOnlineStatus() name and behavior, but now backed by a single
-OnlineStatusProvider mounted once in App.tsx (alongside ThemeProvider, at the
-same app-wide scope) instead of one instance per consuming component.
+Replaced hooks/useOnlineStatus.ts with context/onlineStatus.tsx — same exported useOnlineStatus()
+name and behavior, but now backed by a single OnlineStatusProvider mounted once in App.tsx
+(alongside ThemeProvider, at the same app-wide scope) instead of one instance per consuming
+component.
 
 *** DONE Invalidate the offline cache by app version
 :PROPERTIES:
 :CREATED: [2026-08-16 Sun]
 :END:
-Part of [[*Read-only offline cache][Read-only offline cache]] below. That work
-shipped with no cache versioning — a future response-shape change could hand
-old-shaped data to new code with nothing to catch it — identified afterward and
-closed here.
+Part of [[*Read-only offline cache][Read-only offline cache]] below. That work shipped with no cache versioning — a future
+response-shape change could hand old-shaped data to new code with nothing to catch it — identified
+afterward and closed here.
 
-utils/offlineCache.ts now stamps every record with __APP_VERSION__ (already
-defined via vite.config.ts's define, already shown in the Sidebar footer) on
-write, and getCached() treats a record stamped with a different version as a
-miss — deleting it as a side effect, not awaited, since the read's return value
-doesn't depend on that delete completing. Standard pattern for this kind of
-problem (same idea as service worker cache-name versioning, or React Query's
-persistQueryClient buster option) — any time a persisted payload's shape is
-owned by application code rather than the storage layer, something has to
-detect a shape mismatch across deploys, since the storage layer itself has no
-way to know. Added utils/offlineCache.test.ts covering a plain miss, a normal
-round-trip, and the version-mismatch-treated-as-miss case (written by directly
-seeding a record with a stale appVersion into the fake-indexeddb-backed store,
-bypassing setCached's current-version stamp).
+utils/offlineCache.ts now stamps every record with __APP_VERSION__ (already defined via
+vite.config.ts's define, already shown in the Sidebar footer) on write, and getCached() treats a
+record stamped with a different version as a miss — deleting it as a side effect, not awaited, since
+the read's return value doesn't depend on that delete completing. Standard pattern for this kind of
+problem (same idea as service worker cache-name versioning, or React Query's persistQueryClient
+buster option) — any time a persisted payload's shape is owned by application code rather than the
+storage layer, something has to detect a shape mismatch across deploys, since the storage layer
+itself has no way to know. Added utils/offlineCache.test.ts covering a plain miss, a normal
+round-trip, and the version-mismatch-treated-as-miss case (written by directly seeding a record with
+a stale appVersion into the fake-indexeddb-backed store, bypassing setCached's current-version
+stamp).
 
 *** DONE Add Vitest unit testing, starting with the API client
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
-Related to [[*Read-only offline cache][Read-only offline cache]] below — the only
-tests covering that behavior were e2e, exercised indirectly through the UI, with
-no isolated test of api/client.ts's caching logic itself.
+Related to [[*Read-only offline cache][Read-only offline cache]] below — the only tests covering that behavior were e2e, exercised
+indirectly through the UI, with no isolated test of api/client.ts's caching logic itself.
 
-Added vitest, jsdom, and fake-indexeddb as frontend devDependencies (test-only,
-never bundled) and wired vite.config.ts's test block to use them, with a setup
-file polyfilling indexedDB globally. New frontend/src/api/client.test.ts covers:
-a successful GET, falling back to cache on a network-level failure, rethrowing
-when nothing is cached, NOT falling back to cache for a reachable-but-erroring
-response (e.g. a real 401 must not resurrect a stale cached user), per-path
-cache isolation, writes never attempting a cache fallback, and 204 handling.
+Added vitest, jsdom, and fake-indexeddb as frontend devDependencies (test-only, never bundled) and
+wired vite.config.ts's test block to use them, with a setup file polyfilling indexedDB globally. New
+frontend/src/api/client.test.ts covers: a successful GET, falling back to cache on a network-level
+failure, rethrowing when nothing is cached, NOT falling back to cache for a reachable-but-erroring
+response (e.g. a real 401 must not resurrect a stale cached user), per-path cache isolation, writes
+never attempting a cache fallback, and 204 handling.
 
-While writing these, found and fixed a real bug: request() called setCached()
-fire-and-forget (`.catch(logError)`, not awaited). Since setCached() already
-catches its own errors internally and never rejects, awaiting it is strictly
-safer — the fire-and-forget version could race a fast subsequent offline
-reload past an unflushed cache write. Now awaited.
+While writing these, found and fixed a real bug: request() called setCached() fire-and-forget
+(`.catch(logError)`, not awaited). Since setCached() already catches its own errors internally and
+never rejects, awaiting it is strictly safer — the fire-and-forget version could race a fast
+subsequent offline reload past an unflushed cache write. Now awaited.
 
 *** DONE Read-only offline cache
 :PROPERTIES:
@@ -679,64 +569,56 @@ under [[*Offline support][Offline support]]. See
 [[*Offline Support Design][Offline Support Design]] for the full design and
 tradeoff analysis.
 
-Added utils/offlineCache.ts, a small IndexedDB key/value wrapper. api/client.ts's
-shared request() now caches every successful GET response by request path and,
-on a network-level failure (fetch throwing, not a reachable-but-erroring
-response), falls back to the cached value for that exact path instead of
-throwing — writes are untouched and still fail offline as before. Because this
-sits in the shared request() helper, auth.me/projects.list/projects.stats/
-tracking.list/tracking.summary all get the fallback for free with no
-per-endpoint changes.
+Added utils/offlineCache.ts, a small IndexedDB key/value wrapper. api/client.ts's shared request()
+now caches every successful GET response by request path and, on a network-level failure (fetch
+throwing, not a reachable-but-erroring response), falls back to the cached value for that exact path
+instead of throwing — writes are untouched and still fail offline as before. Because this sits in
+the shared request() helper, auth.me/projects.list/projects.stats/ tracking.list/tracking.summary
+all get the fallback for free with no per-endpoint changes.
 
-AppLayout.tsx's "Can't reach Tempo" fallback (added earlier when the app went
-blank on a failed offline session check) now only shows on a true first-ever
-offline load with nothing cached yet — a returning user's session/data
-transparently falls back to cache instead. Added a small "Offline — showing
-last synced data" banner (new useOnlineStatus hook, tracking the browser's own
-online/offline events) so stale-but-cached data is never shown silently as if
-it were live.
+AppLayout.tsx's "Can't reach Tempo" fallback (added earlier when the app went blank on a failed
+offline session check) now only shows on a true first-ever offline load with nothing cached yet — a
+returning user's session/data transparently falls back to cache instead. Added a small "Offline —
+showing last synced data" banner (new useOnlineStatus hook, tracking the browser's own
+online/offline events) so stale-but-cached data is never shown silently as if it were live.
 
 *** DONE Add a site-wide logging implementation
 :PROPERTIES:
 :CREATED: [2026-08-11 Tue]
 :END:
-Error handling is inconsistent across the frontend: useAuth.ts reports failures
-to Sentry via captureException, but DashboardPage.tsx, SessionsPage.tsx, and
-ProjectsPage.tsx just swallow errors into console.error with no Sentry report
-and no user-facing error state. Introduce a shared logging/error-reporting
-utility and use it consistently at every catch site so failures are actually
+Error handling is inconsistent across the frontend: useAuth.ts reports failures to Sentry via
+captureException, but DashboardPage.tsx, SessionsPage.tsx, and ProjectsPage.tsx just swallow errors
+into console.error with no Sentry report and no user-facing error state. Introduce a shared
+logging/error-reporting utility and use it consistently at every catch site so failures are actually
 tracked instead of only appearing in the browser console.
 
-Added utils/logger.ts (logError) wrapping Sentry.captureException + console.error,
-wired it into every catch site that was swallowing errors or console.error-only
-(DashboardPage, SessionsPage, ProjectsPage, Timer, EventLog, OnboardingPage,
-useAuth). Left context/timer.tsx's localStorage JSON.parse catch alone — that's
-expected recovery from stale/corrupt local data, not a bug signal. Wrapped <App />
-in Sentry.ErrorBoundary (main.tsx) with a fallback UI to catch unforeseen React
-render-time crashes; window.onerror/unhandledrejection are already covered by
-Sentry's default globalHandlersIntegration once Sentry.init runs (PROD only).
+Added utils/logger.ts (logError) wrapping Sentry.captureException + console.error, wired it into
+every catch site that was swallowing errors or console.error-only (DashboardPage, SessionsPage,
+ProjectsPage, Timer, EventLog, OnboardingPage, useAuth). Left context/timer.tsx's localStorage
+JSON.parse catch alone — that's expected recovery from stale/corrupt local data, not a bug
+signal. Wrapped <App /> in Sentry.ErrorBoundary (main.tsx) with a fallback UI to catch unforeseen
+React render-time crashes; window.onerror/unhandledrejection are already covered by Sentry's default
+globalHandlersIntegration once Sentry.init runs (PROD only).
 
 *** DONE Show more details in default view in the sessions screen
 :PROPERTIES:
 :CREATED: [2026-08-03 Mon 15:27]
 :END:
-I think that the user might want to see more information at first sight since
-the already navigated to the "sessions" screen. Currently, we're making the user
-click on the edit button in order to see the session's data. Let's create a more
-verbose version of the session component.
+I think that the user might want to see more information at first sight since the already navigated
+to the "sessions" screen. Currently, we're making the user click on the edit button in order to see
+the session's data. Let's create a more verbose version of the session component.
 
 *** DONE Reduce the amount of sessions displayed in the main screen
 :PROPERTIES:
 :CREATED: [2026-08-03 Mon]
 :END:
-If the user wants to see more information about the sessions they would navigate
-to the sessions screen. The timer screen is all about the current session,
-that's why it's a good idea to limit even more the number of old sessions that
-are displayed.
+If the user wants to see more information about the sessions they would navigate to the sessions
+screen. The timer screen is all about the current session, that's why it's a good idea to limit even
+more the number of old sessions that are displayed.
 
 *** DONE Implement editing and deleting sessions
 :PROPERTIES:
 :CREATED: [2026-08-03 Mon]
 :END:
-Sometimes the user let the clock run too much, or a project might be added after
-the session ended, etc. There are many use cases for this functionality.
+Sometimes the user let the clock run too much, or a project might be added after the session ended,
+etc. There are many use cases for this functionality.
