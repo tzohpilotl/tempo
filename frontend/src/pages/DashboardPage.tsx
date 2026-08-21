@@ -96,9 +96,6 @@ export default function DashboardPage() {
           onEventLogged={(event) =>
             setEvents((prev) => [event, ...prev].slice(0, DASHBOARD_EVENT_LIMIT))
           }
-          onProjectCreated={(project) =>
-            setProjects((prev) => [project, ...prev])
-          }
         />
       </section>
 

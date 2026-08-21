@@ -86,9 +86,12 @@ correctly means reasoning about pagination and project-filter interaction
 this phase's edit/delete work anyway since both need the same "is this event
 still local-only" handling.
 
-**** TODO Phase 4 — Offline project creation                          :maybe:
+**** DONE Phase 4 — Offline project creation                          :maybe:
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-08-20 Thu 17:40]
 :END:
 Lower priority. Only creation is considered — offline edit/delete of
 projects is deferred indefinitely since projects are referenced by events
@@ -359,6 +362,42 @@ devices (see [[*Roadmap][Roadmap]]).
 ** Changelog
 
 Completed work items, newest first. Merged in from the old TODO.org scratch file.
+
+*** DONE Phase 4 — Offline project creation
+:PROPERTIES:
+:CREATED: [2026-08-20 Thu]
+:END:
+Part of [[*Phase 4 — Offline project creation][Phase 4 — Offline project
+creation]] under [[*Offline support][Offline support]].
+
+Two designs were considered and rejected before landing on this one. First,
+keeping project creation inline in [[file:frontend/src/components/Timer.tsx][Timer.tsx]]'s
+"+ New" toggle and queuing it offline alongside the tracking-event queue,
+rewriting any dependent queued event's =project_id= once the project synced
+— rejected as unnecessary machinery (a new local-id namespace, dependency
+rewriting in =drainQueue=) for a rare case. Second, moving creation to
+[[file:frontend/src/pages/ProjectsPage.tsx][ProjectsPage.tsx]] but still
+queuing it through the same offline-queue infrastructure as tracking events
+— rejected because a queued-but-unsynced project can't actually be used yet
+(the Timer's project picker only ever offers already-synced projects, and
+nothing merges pending projects into it), so queuing bought nothing over
+just failing clearly and retrying once back online.
+
+What shipped instead needed no new queue infrastructure at all: a session
+can already be logged with no project attached (offline-queueable via the
+existing Phase 2 event queue), and reattributing a session to a project
+afterwards is already supported by Phase 3's offline-edit flow
+(=queueEventUpdate=). So the realistic offline workflow — work without a
+project while offline, create the project once back online, then edit the
+session(s) to attach it — was already fully covered. This phase is
+therefore just a relocation: project creation moved off the Timer (removing
+its inline "+ New" toggle and the =onProjectCreated= callback plumbing
+through [[file:frontend/src/pages/DashboardPage.tsx][DashboardPage.tsx]])
+and onto ProjectsPage as its own explicitly online-only action, disabled
+with a clear inline message (gated on the existing
+[[file:frontend/src/context/onlineStatus.tsx][useOnlineStatus]] context)
+rather than letting the user submit something guaranteed to fail. No
+backend changes.
 
 *** DONE Move session store off in-memory memorystore
 :PROPERTIES:

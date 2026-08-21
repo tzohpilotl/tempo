@@ -33,6 +33,37 @@
   font-family: var(--font-mono);
 }
 
+/* ── New project ─────────────────────────────────────────────────────────────── */
+
+.newProjectRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.newProjectInput {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  transition: border-color 0.12s var(--ease);
+}
+
+.newProjectInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.newProjectInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ── Project list ────────────────────────────────────────────────────────────── */
 
 .list {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { tracking, projects as projectsApi, ApiError } from '../api/client';
+import { tracking, ApiError } from '../api/client';
 import type { Project, TrackingEvent } from '../types';
 import { capitalize, formatTime } from '../utils/text';
 import { logError } from '../utils/logger';
@@ -10,15 +10,12 @@ import styles from './Timer.module.css';
 interface Props {
   projects: Project[];
   onEventLogged: (event: TrackingEvent) => void;
-  onProjectCreated: (project: Project) => void;
 }
 
-export default function Timer({ projects, onEventLogged, onProjectCreated }: Props) {
+export default function Timer({ projects, onEventLogged }: Props) {
   const { running, elapsed, startedAt, start, stop,
           taskDescription, setTaskDescription,
           selectedProjectId, setSelectedProjectId } = useTimer();
-  const [newProjectName, setNewProjectName] = useState('');
-  const [showNewProject, setShowNewProject] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,14 +41,7 @@ export default function Timer({ projects, onEventLogged, onProjectCreated }: Pro
     const stoppedAt = new Date();
 
     try {
-      let projectId = selectedProjectId || undefined;
-      if (showNewProject && newProjectName.trim()) {
-        const created = await projectsApi.create(newProjectName.trim());
-        onProjectCreated(created);
-        projectId = created.project_id;
-        setNewProjectName('');
-        setShowNewProject(false);
-      }
+      const projectId = selectedProjectId || undefined;
 
       const payload = {
         started_at: capturedStartedAt.toISOString(),
@@ -81,11 +71,8 @@ export default function Timer({ projects, onEventLogged, onProjectCreated }: Pro
     startedAt,
     stop,
     selectedProjectId,
-    showNewProject,
-    newProjectName,
     taskDescription,
     onEventLogged,
-    onProjectCreated,
   ]);
 
   return (
@@ -114,53 +101,19 @@ export default function Timer({ projects, onEventLogged, onProjectCreated }: Pro
         />
 
         <div className={styles.projectRow}>
-          {!showNewProject ? (
-            <>
-              <select
-                className={styles.projectSelect}
-                value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-                disabled={saving}
-              >
-                <option value="">No project</option>
-                {projects.map((p) => (
-                  <option key={p.project_id} value={p.project_id}>
-                    {capitalize(p.name)}
-                  </option>
-                ))}
-              </select>
-              <button
-                className={styles.newProjectToggle}
-                onClick={() => setShowNewProject(true)}
-                type="button"
-                disabled={saving}
-                title="Create new project"
-              >
-                + New
-              </button>
-            </>
-          ) : (
-            <>
-              <input
-                className={styles.newProjectInput}
-                type="text"
-                placeholder="New project name…"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                autoFocus
-                maxLength={100}
-                disabled={saving}
-              />
-              <button
-                className={styles.newProjectToggle}
-                onClick={() => { setShowNewProject(false); setNewProjectName(''); }}
-                type="button"
-                disabled={saving}
-              >
-                Cancel
-              </button>
-            </>
-          )}
+          <select
+            className={styles.projectSelect}
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            disabled={saving}
+          >
+            <option value="">No project</option>
+            {projects.map((p) => (
+              <option key={p.project_id} value={p.project_id}>
+                {capitalize(p.name)}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

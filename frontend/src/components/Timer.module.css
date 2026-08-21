@@ -80,27 +80,6 @@
   background-size: 14px;
 }
 
-.newProjectInput {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-}
-
-.newProjectToggle {
-  padding: 0.5rem 0.875rem;
-  background: var(--bg-raised);
-  color: var(--text-muted);
-  border: none;
-  border-radius: var(--radius);
-  font-size: 0.8rem;
-  white-space: nowrap;
-  transition: color 0.15s, background 0.15s;
-}
-
-.newProjectToggle:hover {
-  color: var(--text);
-  background: var(--bg-surface);
-}
-
 .error {
   font-size: 0.8rem;
   color: var(--danger);
@@ -224,8 +203,7 @@
     gap: 0;
   }
 
-  .projectSelect,
-  .newProjectInput {
+  .projectSelect {
     flex: 1;
     border: none;
     border-radius: 0;
@@ -235,22 +213,9 @@
     box-shadow: none;
   }
 
-  .newProjectInput {
-    padding-right: 1.125rem;
-  }
-
-  .projectSelect:focus,
-  .newProjectInput:focus {
+  .projectSelect:focus {
     box-shadow: none;
     background-color: rgba(255,255,255,0.3);
-  }
-
-  .newProjectToggle {
-    border: none;
-    border-left: 1px solid var(--border);
-    border-radius: 0;
-    padding: 1rem 1rem;
-    background: transparent;
   }
 
   .display {

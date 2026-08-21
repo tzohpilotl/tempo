@@ -3,6 +3,7 @@ import { projects as projectsApi } from '../api/client';
 import type { ProjectStats } from '../types';
 import { capitalize } from '../utils/text';
 import { logError } from '../utils/logger';
+import { useOnlineStatus } from '../context/onlineStatus';
 import styles from './ProjectsPage.module.css';
 
 export default function ProjectsPage() {
@@ -13,7 +14,11 @@ export default function ProjectsPage() {
   const [editError, setEditError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
+  const [newError, setNewError] = useState('');
+  const [creating, setCreating] = useState(false);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const online = useOnlineStatus();
 
   useEffect(() => {
     projectsApi
@@ -57,6 +62,27 @@ export default function ProjectsPage() {
     }
   }
 
+  async function createProject() {
+    const trimmed = newName.trim();
+    if (!trimmed) { setNewError('Name cannot be empty'); return; }
+    setCreating(true);
+    try {
+      const created = await projectsApi.create(trimmed);
+      setStats((prev) => [
+        { project_id: created.project_id, name: created.name, created_at: created.created_at, total_seconds: 0, event_count: 0 },
+        ...prev,
+      ]);
+      setNewName('');
+      setNewError('');
+    } catch (err: unknown) {
+      logError(err);
+      const msg = err instanceof Error ? err.message : 'Failed to create project';
+      setNewError(msg);
+    } finally {
+      setCreating(false);
+    }
+  }
+
   async function confirmDelete(projectId: string) {
     try {
       await projectsApi.delete(projectId);
@@ -75,6 +101,26 @@ export default function ProjectsPage() {
           <h1 className={styles.title}>Projects</h1>
           <span className={styles.count}>{stats.length} project{stats.length !== 1 ? 's' : ''}</span>
         </header>
+
+        <div className={styles.newProjectRow}>
+          <input
+            className={`${styles.newProjectInput} ${newError ? styles.editInputError : ''}`}
+            placeholder={online ? 'New project name…' : 'Connect to the internet to add a project'}
+            value={newName}
+            onChange={(e) => { setNewName(e.target.value); setNewError(''); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') createProject(); }}
+            maxLength={100}
+            disabled={!online || creating}
+          />
+          <button
+            className={styles.saveBtn}
+            onClick={createProject}
+            disabled={!online || creating}
+          >
+            {creating ? '…' : 'Add'}
+          </button>
+          {newError && <span className={styles.editErrorMsg}>{newError}</span>}
+        </div>
 
         {loading ? (
           <div className={styles.skeleton}>
