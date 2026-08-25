@@ -1,4 +1,7 @@
-* Design
+#+TITLE: Design
+#+AUTHOR: Mario Alejandro Gil Lázaro
+
+* Purpose
 
 This is a document that describe the Tempo app from the product perspective. Its roadmap works as a
 backlog because it holds the action items identified by the product manager; it works as a tracker
@@ -14,21 +17,26 @@ one Roadmap epic before it's complete. A Changelog entry that contributes to a R
 link back to it, e.g. "part of [[*Enable hourly rates and billing calculation for projects][Enable hourly rates and billing calculation for projects]]"; entries
 with no matching epic just stand alone.
 
-** Features Overview
-The application offers the following features for free:
-*** DONE Unlimited sessions per day
-*** DONE Unlimited projects
-*** DONE Stopwatch behavior to count elapsed time
-*** DONE Ability to edit and delete sessions and projects
-*** DONE Today, this week, this month and all time metrics
 
-** Roadmap
+* Features Overview
+The epics in the roadmap should map to these features. This may not be reflected 100% because
+this document's version was created after many of these features were implemented.
+The application offers the following features for free:
+
+** DONE Unlimited sessions per day
+** DONE Unlimited projects
+** DONE Stopwatch behavior to count elapsed time
+** DONE Ability to edit and delete sessions and projects
+** DONE Today, this week, this month and all time metrics
+
+
+* Roadmap
 
 Open (TODO) items are listed first, in priority order, highest priority first. Completed (DONE)
-items are kept at the end of the list, chronologically by creation date, rather than mixed in with
-what's still open.
+items are kept at the end of the list, in descending order by the date of their last TODO to DONE
+transition (most recently completed first), rather than mixed in with what's still open.
 
-*** TODO Harden auth/session security
+** TODO Harden auth/session security
 :PROPERTIES:
 :CREATED: [2026-08-19 Wed]
 :END:
@@ -42,29 +50,77 @@ detail:
 - `SESSION_SECRET` silently falls back to a public, hardcoded string if unset, instead of failing
   startup.
 
-*** TODO Offline support
+** TODO Push notifications
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
+:END:
+
+** TODO Use tags to group sessions from different projects
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+** TODO Have a free and a premium tier with different features
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+** TODO Enable hourly rates and billing calculation for projects
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+** TODO Define repeatable tasks
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+** TODO Create timers too, not only stopwatch-like
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+** TODO Set daily, weekly or monthly goals or budgets                 :maybe:
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+** TODO Integrate pomodoro functionality                              :maybe:
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+** TODO Use a note for reflection at the end of the session           :maybe:
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+
+** DONE Offline support
+:PROPERTIES:
+:CREATED: [2026-08-13 Thu]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-08-25 Tue 10:23]
 :END:
 Create, edit and delete sessions while offline, queued locally and synced once a connection is back
 — part of [[*PWA support][PWA support]]. The installed app shell already works offline for the static UI; this is what
 makes the data layer work offline too. Design and tradeoff analysis: [[*Offline Support Design][Offline Support Design]].
 
-**** DONE Phase 1 — Read-only offline cache
+*** DONE Phase 1 — Read-only offline cache
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
 Cache the last-synced user, projects, and tracking events in IndexedDB, and fall back to that cache
 instead of a dead end when the network is down.
 
-**** DONE Phase 2 — Offline session creation
+*** DONE Phase 2 — Offline session creation
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
 Queue timer-stop/create-event calls locally when offline, applied optimistically with a temp local
 ID, synced once back online; add a small "offline / N pending changes" UI indicator.
 
-**** DONE Phase 3 — Offline edit/delete of existing events
+*** DONE Phase 3 — Offline edit/delete of existing events
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
@@ -75,7 +131,7 @@ doing it correctly means reasoning about pagination and project-filter interacti
 only make sense on page 1, unfiltered), which belongs with this phase's edit/delete work anyway
 since both need the same "is this event still local-only" handling.
 
-**** DONE Phase 4 — Offline project creation                          :maybe:
+*** DONE Phase 4 — Offline project creation                           :maybe:
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
@@ -85,62 +141,7 @@ since both need the same "is this event still local-only" handling.
 Lower priority. Only creation is considered — offline edit/delete of projects is deferred
 indefinitely since projects are referenced by events and getting that wrong risks data integrity.
 
-*** TODO Push notifications
-:PROPERTIES:
-:CREATED: [2026-08-13 Thu]
-:END:
-
-*** TODO Use tags to group sessions from different projects
-:PROPERTIES:
-:CREATED: [2026-08-12 Wed]
-:END:
-
-*** TODO Have a free and a premium tier with different features
-:PROPERTIES:
-:CREATED: [2026-08-12 Wed]
-:END:
-
-*** TODO Enable hourly rates and billing calculation for projects
-:PROPERTIES:
-:CREATED: [2026-08-12 Wed]
-:END:
-
-*** TODO Define repeatable tasks
-:PROPERTIES:
-:CREATED: [2026-08-12 Wed]
-:END:
-
-*** TODO Create timers too, not only stopwatch-like
-:PROPERTIES:
-:CREATED: [2026-08-12 Wed]
-:END:
-
-*** TODO Set daily, weekly or monthly goals or budgets                :maybe:
-:PROPERTIES:
-:CREATED: [2026-08-12 Wed]
-:END:
-
-*** TODO Integrate pomodoro functionality                             :maybe:
-:PROPERTIES:
-:CREATED: [2026-08-12 Wed]
-:END:
-
-*** TODO Use a note for reflection at the end of the session          :maybe:
-:PROPERTIES:
-:CREATED: [2026-08-12 Wed]
-:END:
-
-*** DONE PWA support
-:PROPERTIES:
-:CREATED: [2026-08-12 Wed]
-:END:
-Users can install Tempo to their phone or desktop home screen / app drawer via the browser's native
-install prompt. Once installed, it opens in its own standalone window (no browser chrome or URL bar)
-with a proper app icon, and the static app shell keeps working through brief network hiccups. This
-does not include offline creation of tracking events — starting/stopping the timer still requires a
-live connection; see "Offline support" below for that.
-
-*** DONE Extend login session duration / reduce forced re-logins
+** DONE Extend login session duration / reduce forced re-logins
 :PROPERTIES:
 :CREATED: [2026-08-19 Wed]
 :END:
@@ -149,13 +150,24 @@ real data once already: a time-tracking session was lost when a forced re-login 
 predates [[*Offline support][Offline support]], which would likely prevent a recurrence today, but doesn't address the
 underlying cause). See [[*Login / Auth Design][Login / Auth Design]].
 
-** Offline Support Design
+** DONE PWA support
+:PROPERTIES:
+:CREATED: [2026-08-12 Wed]
+:END:
+Users can install Tempo to their phone or desktop home screen / app drawer via the browser's native
+install prompt. Once installed, it opens in its own standalone window (no browser chrome or URL bar)
+with a proper app icon, and the static app shell keeps working through brief network hiccups. This
+does not include offline creation of tracking events — starting/stopping the timer still requires a
+live connection; see [[*Offline support][Offline support]] above for that.
+
+
+* Offline Support Design
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
 Design and tradeoff analysis backing [[*Offline support][Offline support]] in the Roadmap.
 
-*** Problem
+** Problem
 The service worker added for [[*PWA support][PWA support]] only caches the static app shell (HTML/JS/CSS/icons), not
 API data. Offline, the shell loads but every data request (session check, event list, timer stop)
 fails — before this was diagnosed, a failed session check left the app on a blank screen
@@ -163,9 +175,9 @@ indefinitely, since nothing handled that state (fixed separately — see the Cha
 currently no offline data story at all: no cached events to fall back to, and no way to create or
 edit a session without a live round trip to the backend.
 
-*** Design decisions and tradeoffs
+** Design decisions and tradeoffs
 
-**** Persistence: IndexedDB, not React state or localStorage
+*** Persistence: IndexedDB, not React state or localStorage
 In-memory state doesn't survive a page reload, a closed tab, or — especially relevant on mobile —
 iOS evicting a backgrounded PWA's process to reclaim memory. Since going offline can mean hours
 between "create a session" and "reconnect," anything queued for sync has to survive process death,
@@ -178,14 +190,14 @@ per record), capped around 5–10MB, and has no query/index support. IndexedDB i
 structured objects natively, has a much larger origin-based quota, and supports indexed lookups —
 needed once we're storing potentially hundreds of cached events plus an ordered mutation queue.
 
-**** Sync trigger: 'online' event + on-load check, not the Background Sync API
+*** Sync trigger: 'online' event + on-load check, not the Background Sync API
 The Background Sync API would let queued writes sync even after the tab is closed, but browser
 support is inconsistent and notably weak/absent on iOS Safari — the platform this app is actually
 installed on as a PWA today.  Syncing only while the app is open (on load, and on the browser's
 'online' event) is simpler, more predictable, and doesn't silently depend on a capability that may
 not exist on the user's device.
 
-**** Conflict handling: surface and stop, no auto-merge
+*** Conflict handling: surface and stop, no auto-merge
 The backend rejects overlapping sessions server-side ([[file:backend/src/tracking/tracking.service.ts][tracking.service.ts]]'s assertNoOverlap). If a
 queued item is rejected on sync (409 overlap, 404 not found because the referenced project or event
 was deleted elsewhere, etc.), the queue stops draining at that item and the conflict is surfaced
@@ -194,21 +206,22 @@ and each account is still only used by one person across their own devices (see 
 Control section), so building real multi-device merge logic isn't worth the complexity it would add
 — a human resolving an occasional conflict manually is an acceptable tradeoff here.
 
-**** Scope boundaries
+*** Scope boundaries
 Deliberately deferred or out of scope: offline *editing or deleting* of projects (only offline
 *creation* is considered, and only in Phase 4 — see above); any cross-device automatic conflict
 resolution; and the Background Sync API (see above).
 
-*** Phases
+** Phases
 See the subtasks under [[*Offline support][Offline support]] in the Roadmap for the phase breakdown and status.
 
-** Login / Auth Design
+
+* Login / Auth Design
 :PROPERTIES:
 :CREATED: [2026-08-19 Wed]
 :END:
 Design context backing [[*Extend login session duration / reduce forced re-logins][Extend login session duration / reduce forced re-logins]] in the Roadmap.
 
-*** Current architecture
+** Current architecture
 Authentication is Google OAuth 2.0 via Passport ([[file:backend/src/auth/google.strategy.ts][google.strategy.ts]]), backed by a server-side
 session — not a client-held JWT. The frontend never sees a token: it authenticates by sending the
 `connect.sid` cookie automatically (`credentials: "include"` in [[file:frontend/src/api/client.ts][api/client.ts]]) and checks login
@@ -226,7 +239,7 @@ plain server session, not a JWT). Only `user_id` is serialized into the session
 is now required in production — the process refuses to start rather than silently signing sessions
 with a guessable default.
 
-*** Problem (resolved)
+** Problem (resolved)
 Users were being asked to log back in more often than the 7-day cookie lifetime alone would
 suggest. The cause was that every backend restart/redeploy wiped the in-memory `memorystore` session
 store, silently invalidating all sessions regardless of cookie age. This had already cost real data
@@ -238,7 +251,7 @@ Access Control section), so an in-memory session store forcing everyone out on e
 bigger blast radius than it used to be. Fixed by moving to a persistent SQLite-backed session store
 — see the Changelog entry under [[*Extend login session duration / reduce forced re-logins][Extend login session duration / reduce forced re-logins]].
 
-*** Open questions
+** Open questions
 - Move to a persistent session store. The app currently runs on SQLite ([[file:backend/src/app.module.ts][app.module.ts]]), not
   Postgres, so the lowest-risk fix is a SQLite/TypeORM-backed session store (e.g.  `connect-sqlite3`
   or `connect-typeorm`) pointed at the same persisted Docker volume as the main DB — not a full
@@ -250,7 +263,7 @@ bigger blast radius than it used to be. Fixed by moving to a persistent SQLite-b
   using the app under their own Google accounts, revisit whether that single-email allowlist is
   still the right access control model, independent of the session-duration fix.
 
-*** Session store options: connect-sqlite3 vs connect-typeorm
+** Session store options: connect-sqlite3 vs connect-typeorm
 
 Both point the session store at the same SQLite file already used for the app DB (persisted in the
 existing Docker volume), so either fixes the restart/redeploy data loss. They differ in integration
@@ -277,7 +290,7 @@ replicas would need a network-accessible store (Postgres/Redis) regardless
 of which of these two is picked now; that's out of scope here (see the
 single-replica note in the Migration plan below).
 
-*** Migration plan (done)
+** Migration plan (done)
 
 - [X] Add =connect-sqlite3= (and =@types/connect-sqlite3=) to =backend/package.json=.
 - [X] Point the store at a file inside the same persisted Docker volume the main DB already uses, so
@@ -298,18 +311,20 @@ single-replica note in the Migration plan below).
   across multiple backend containers) — out of scope unless/until scaling beyond one container is
   needed.
 
-** Compatibility
+
+* Compatibility
 Tempo is a web application which can be used easily on mobile screens. It would be of great benefit
 to have it as an app both in desktop and mobile devices, but the team currently doesn't have the
 bandwidth to implement or maintain such varied implementations. For now, it will continue to be a
 web application — the roadmap includes making it installable as a progressive web app on mobile
 devices (see [[*Roadmap][Roadmap]]).
 
-** Changelog
+
+* Changelog
 
 Completed work items, newest first. Merged in from the old TODO.org scratch file.
 
-*** DONE Phase 4 — Offline project creation
+** DONE Phase 4 — Offline project creation
 :PROPERTIES:
 :CREATED: [2026-08-20 Thu]
 :END:
@@ -337,7 +352,7 @@ and onto ProjectsPage as its own explicitly online-only action, disabled with a 
 (gated on the existing [[file:frontend/src/context/onlineStatus.tsx][useOnlineStatus]] context) rather than letting the user submit something
 guaranteed to fail. No backend changes.
 
-*** DONE Move session store off in-memory memorystore
+** DONE Move session store off in-memory memorystore
 :PROPERTIES:
 :CREATED: [2026-08-19 Wed]
 :END:
@@ -354,7 +369,7 @@ process, restarting it, and confirming the same cookie still authenticated.  Not
 enable multiple backend replicas — a SQLite file still can't be shared across containers; that's
 unchanged from before.
 
-*** DONE Badge unsynced sessions inline instead of leaving them indistinguishable
+** DONE Badge unsynced sessions inline instead of leaving them indistinguishable
 :PROPERTIES:
 :CREATED: [2026-08-18 Tue]
 :END:
@@ -378,7 +393,7 @@ both just pass useQueueStatus().pendingIds straight through. Added badge asserti
 Phase 3 e2e cases (queued creation, queued edit) confirming the badge appears while offline and
 disappears once the change has synced.
 
-*** DONE Phase 3 — Offline edit/delete of existing events
+** DONE Phase 3 — Offline edit/delete of existing events
 :PROPERTIES:
 :CREATED: [2026-08-18 Tue]
 :END:
@@ -430,7 +445,7 @@ existing "N session(s) pending sync" wording to "N change(s) pending sync", sinc
 counts edits and deletes too, not just new sessions — matching the "N pending changes" phrasing this
 indicator was described with when first introduced in Phase 2 above.
 
-*** DONE Phase 2 — Offline session creation
+** DONE Phase 2 — Offline session creation
 :PROPERTIES:
 :CREATED: [2026-08-17 Mon]
 :END:
@@ -483,7 +498,7 @@ still-queued event, and creating a *new* project while offline as part of stoppi
 specific combined action still fails with today's error message — queuing project creation is Phase
 4 territory).
 
-*** DONE Drive the offline banner off real request failures, not just navigator.onLine
+** DONE Drive the offline banner off real request failures, not just navigator.onLine
 :PROPERTIES:
 :CREATED: [2026-08-17 Mon]
 :END:
@@ -505,7 +520,7 @@ available, self-correcting authoritative detection from real request outcomes ot
 permanent e2e test proving the motivating case directly — the banner shows while navigator.onLine
 stays true, with only the API requests failing.
 
-*** DONE Turn useOnlineStatus into a context provider
+** DONE Turn useOnlineStatus into a context provider
 :PROPERTIES:
 :CREATED: [2026-08-17 Mon]
 :END:
@@ -521,7 +536,7 @@ name and behavior, but now backed by a single OnlineStatusProvider mounted once 
 (alongside ThemeProvider, at the same app-wide scope) instead of one instance per consuming
 component.
 
-*** DONE Invalidate the offline cache by app version
+** DONE Invalidate the offline cache by app version
 :PROPERTIES:
 :CREATED: [2026-08-16 Sun]
 :END:
@@ -541,7 +556,7 @@ round-trip, and the version-mismatch-treated-as-miss case (written by directly s
 a stale appVersion into the fake-indexeddb-backed store, bypassing setCached's current-version
 stamp).
 
-*** DONE Add Vitest unit testing, starting with the API client
+** DONE Add Vitest unit testing, starting with the API client
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
@@ -560,7 +575,7 @@ While writing these, found and fixed a real bug: request() called setCached() fi
 never rejects, awaiting it is strictly safer — the fire-and-forget version could race a fast
 subsequent offline reload past an unflushed cache write. Now awaited.
 
-*** DONE Read-only offline cache
+** DONE Read-only offline cache
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
@@ -582,7 +597,7 @@ returning user's session/data transparently falls back to cache instead. Added a
 showing last synced data" banner (new useOnlineStatus hook, tracking the browser's own
 online/offline events) so stale-but-cached data is never shown silently as if it were live.
 
-*** DONE Add a site-wide logging implementation
+** DONE Add a site-wide logging implementation
 :PROPERTIES:
 :CREATED: [2026-08-11 Tue]
 :END:
@@ -600,7 +615,7 @@ signal. Wrapped <App /> in Sentry.ErrorBoundary (main.tsx) with a fallback UI to
 React render-time crashes; window.onerror/unhandledrejection are already covered by Sentry's default
 globalHandlersIntegration once Sentry.init runs (PROD only).
 
-*** DONE Show more details in default view in the sessions screen
+** DONE Show more details in default view in the sessions screen
 :PROPERTIES:
 :CREATED: [2026-08-03 Mon 15:27]
 :END:
@@ -608,7 +623,7 @@ I think that the user might want to see more information at first sight since th
 to the "sessions" screen. Currently, we're making the user click on the edit button in order to see
 the session's data. Let's create a more verbose version of the session component.
 
-*** DONE Reduce the amount of sessions displayed in the main screen
+** DONE Reduce the amount of sessions displayed in the main screen
 :PROPERTIES:
 :CREATED: [2026-08-03 Mon]
 :END:
@@ -616,7 +631,7 @@ If the user wants to see more information about the sessions they would navigate
 screen. The timer screen is all about the current session, that's why it's a good idea to limit even
 more the number of old sessions that are displayed.
 
-*** DONE Implement editing and deleting sessions
+** DONE Implement editing and deleting sessions
 :PROPERTIES:
 :CREATED: [2026-08-03 Mon]
 :END:
