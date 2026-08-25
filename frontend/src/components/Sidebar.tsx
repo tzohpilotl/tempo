@@ -1,6 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { User } from '../types';
 import { useTheme } from '../context/theme';
+import { auth } from '../api/client';
+import { logError } from '../utils/logger';
 import styles from './Sidebar.module.css';
 
 interface Props {
@@ -11,6 +13,18 @@ export default function Sidebar({ user }: Props) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  const handleLogout = async () => {
+    try {
+      await auth.logout();
+    } catch (err) {
+      logError(err);
+    }
+    // Full reload rather than client-side navigate — the app has no shared
+    // auth state to invalidate, so this is the simplest way to make every
+    // component (starting with useAuth) forget the logged-in user.
+    window.location.href = '/login';
+  };
 
   const activeTab = pathname.startsWith('/sessions')
     ? 'sessions'
@@ -39,7 +53,7 @@ export default function Sidebar({ user }: Props) {
           </button>
           <button
             className={styles.logoutBtn}
-            onClick={() => { window.location.href = '/api/auth/logout'; }}
+            onClick={handleLogout}
             title="Sign out"
           >
             <LogoutIcon />
@@ -88,7 +102,7 @@ export default function Sidebar({ user }: Props) {
         </button>
         <button
           className={styles.logoutBtn}
-          onClick={() => { window.location.href = '/api/auth/logout'; }}
+          onClick={handleLogout}
           title="Sign out"
         >
           <LogoutIcon />

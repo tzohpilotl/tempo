@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Req,
   Res,
   UseGuards,
@@ -87,14 +88,13 @@ export class AuthController {
    * POST /api/auth/logout
    * Destroys the server-side session and clears the cookie.
    */
-  @Get('logout')
+  @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout(@Req() req: Request, @Res() res: Response): void {
     req.logout(() => {
       req.session.destroy(() => {
         res.clearCookie('connect.sid');
-        const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
-        res.redirect(`${frontendUrl}/login`);
+        res.json({ ok: true });
       });
     });
   }

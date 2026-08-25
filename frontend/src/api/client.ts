@@ -63,7 +63,7 @@ export const auth = {
     window.location.href = `${BASE}/auth/google`;
   },
 
-  logout: () => request<void>("/auth/logout"),
+  logout: () => request<void>("/auth/logout", { method: "POST" }),
 };
 
 // ── Projects ──────────────────────────────────────────────────────────────────

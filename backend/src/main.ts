@@ -13,9 +13,10 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   const sessionSecret = process.env.SESSION_SECRET;
-  if (process.env.NODE_ENV === "production" && !sessionSecret) {
+  if (!sessionSecret) {
     throw new Error(
-      "SESSION_SECRET must be set in production — refusing to start with a guessable default.",
+      "SESSION_SECRET must be set — refusing to start with a guessable default. " +
+        "Generate one with: openssl rand -hex 32",
     );
   }
 
@@ -50,9 +51,7 @@ async function bootstrap() {
         db: "sessions.sqlite",
         table: "sessions",
       }) as session.Store,
-      // Only reached outside production — the guard above already
-      // requires SESSION_SECRET to be set when NODE_ENV=production.
-      secret: sessionSecret ?? "local-dev-only-secret-not-for-production",
+      secret: sessionSecret,
       resave: false,
       rolling: true, // extend the cookie on each request so active use doesn't get logged out mid-session
       saveUninitialized: false,
@@ -60,6 +59,12 @@ async function bootstrap() {
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, refreshed by `rolling` above
         secure: process.env.NODE_ENV === "production",
+        // 'lax' rather than 'strict': the Google OAuth callback is a top-level
+        // cross-site redirect back to us, which 'strict' would drop the cookie on.
+        // Frontend and backend are always same-origin (Vite proxy in dev, Caddy in
+        // prod — see frontend/Caddyfile), so 'lax' already blocks cross-site
+        // state-changing requests from riding this cookie.
+        sameSite: "lax",
       },
     }),
   );

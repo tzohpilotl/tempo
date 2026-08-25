@@ -17,6 +17,13 @@ one Roadmap epic before it's complete. A Changelog entry that contributes to a R
 link back to it, e.g. "part of [[*Enable hourly rates and billing calculation for projects][Enable hourly rates and billing calculation for projects]]"; entries
 with no matching epic just stand alone.
 
+Features Overview in turn maps forward to the Roadmap epic(s) that deliver or harden each feature.
+A feature entry should link to them, e.g. "delivered by [[*Offline support][Offline support]]" or "hardened by 
+[[*Extend login session duration / reduce forced re-logins][Extend login session duration / reduce forced re-logins]]" — a feature can accumulate more than one 
+epic link over time. Epics with no single shippable feature of their own (pure internal hardening 
+with no new user-facing capability, or a cross-cutting packaging change like tiering) won't have a 
+feature pointing back to them.
+
 
 * Features Overview
 The epics in the roadmap should map to these features. This may not be reflected 100% because
@@ -28,6 +35,39 @@ The application offers the following features for free:
 ** DONE Stopwatch behavior to count elapsed time
 ** DONE Ability to edit and delete sessions and projects
 ** DONE Today, this week, this month and all time metrics
+** DONE Secure user accounts (sign up, login, session management)
+Hardened by [[*Extend login session duration / reduce forced re-logins][Extend login session duration / reduce forced re-logins]] and [[*Harden auth/session security][Harden auth/session
+security]].
+
+** DONE Offline session tracking (create, edit, and delete sessions without a connection)
+Delivered by [[*Offline support][Offline support]].
+
+** DONE Installable app (PWA)
+Delivered by [[*PWA support][PWA support]].
+
+** TODO Push notifications for reminders and events
+Delivered by [[*Push notifications][Push notifications]].
+
+** TODO Tag-based session organization across projects
+Delivered by [[*Use tags to group sessions from different projects][Use tags to group sessions from different projects]].
+
+** TODO Hourly billing rates and cost calculations per project
+Delivered by [[*Enable hourly rates and billing calculation for projects][Enable hourly rates and billing calculation for projects]].
+
+** TODO Repeatable/recurring tasks
+Delivered by [[*Define repeatable tasks][Define repeatable tasks]].
+
+** TODO Countdown timers alongside the stopwatch
+Delivered by [[*Create timers too, not only stopwatch-like][Create timers too, not only stopwatch-like]].
+
+** TODO Time/budget goals (daily, weekly, monthly)                    :maybe:
+Delivered by [[*Set daily, weekly or monthly goals or budgets][Set daily, weekly or monthly goals or budgets]].
+
+** TODO Pomodoro-style work/break cycles                              :maybe:
+Delivered by [[*Integrate pomodoro functionality][Integrate pomodoro functionality]].
+
+** TODO End-of-session reflection notes                               :maybe:
+Delivered by [[*Use a note for reflection at the end of the session][Use a note for reflection at the end of the session]].
 
 
 * Roadmap
@@ -35,20 +75,6 @@ The application offers the following features for free:
 Open (TODO) items are listed first, in priority order, highest priority first. Completed (DONE)
 items are kept at the end of the list, in descending order by the date of their last TODO to DONE
 transition (most recently completed first), rather than mixed in with what's still open.
-
-** TODO Harden auth/session security
-:PROPERTIES:
-:CREATED: [2026-08-19 Wed]
-:END:
-Smaller, independent hardening items found while investigating the re-login problem above — not
-required to fix session persistence, but cheap to do alongside it. See [[*Login / Auth Design][Login / Auth Design]] for
-detail:
-- Logout is a GET route despite its own doc comment saying POST, making it triggerable cross-site
-  (e.g. via an `<img>` tag on another page).
-- Session cookie has no explicit `sameSite`, and the app has no CSRF token protection elsewhere
-  either.
-- `SESSION_SECRET` silently falls back to a public, hardcoded string if unset, instead of failing
-  startup.
 
 ** TODO Push notifications
 :PROPERTIES:
@@ -64,6 +90,8 @@ detail:
 :PROPERTIES:
 :CREATED: [2026-08-12 Wed]
 :END:
+Cross-cutting packaging change — decides which existing/future [[*Features Overview][Features Overview]] entries are free
+vs. paid, rather than delivering a feature of its own. No single feature link.
 
 ** TODO Enable hourly rates and billing calculation for projects
 :PROPERTIES:
@@ -94,6 +122,23 @@ detail:
 :PROPERTIES:
 :CREATED: [2026-08-12 Wed]
 :END:
+
+** DONE Harden auth/session security
+:PROPERTIES:
+:CREATED: [2026-08-19 Wed]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-08-25 Tue 11:20]
+:END:
+Smaller, independent hardening items found while investigating the re-login problem above — not
+required to fix session persistence, but cheap to do alongside it. See [[*Login / Auth Design][Login / Auth Design]] for
+detail:
+- Logout is a GET route despite its own doc comment saying POST, making it triggerable cross-site
+  (e.g. via an `<img>` tag on another page).
+- Session cookie has no explicit `sameSite`, and the app has no CSRF token protection elsewhere
+  either.
+- `SESSION_SECRET` silently falls back to a public, hardcoded string if unset, instead of failing
+  startup.
 
 ** DONE Offline support
 :PROPERTIES:
@@ -323,6 +368,44 @@ devices (see [[*Roadmap][Roadmap]]).
 * Changelog
 
 Completed work items, newest first. Merged in from the old TODO.org scratch file.
+
+** DONE Harden auth/session security
+:PROPERTIES:
+:CREATED: [2026-08-25 Tue]
+:END:
+Part of [[*Harden auth/session security][Harden auth/session security]].
+
+All three items fixed: (1) =/api/auth/logout= was a =@Get()= route despite its own doc comment
+saying POST — a GET is a state-changing request triggerable cross-site (e.g. via an =<img>= tag),
+and the frontend was navigating to it with a raw =window.location.href= rather than a fetch call.
+Changed the route to =@Post()=, changed it to respond with JSON instead of a redirect (it's no
+longer a browser navigation), and updated [[file:frontend/src/components/Sidebar.tsx][Sidebar.tsx]]'s two logout buttons to call the existing
+=auth.logout()= API client method (itself switched to =POST=) and then hard-navigate to =/login=
+afterward — a full reload rather than a client-side route change, since there's no shared auth
+state elsewhere in the app to invalidate. (2) The session cookie had no =sameSite= at all. Added
+=sameSite: "lax"= in [[file:backend/src/main.ts][main.ts]] — =lax= rather than =strict= because the Google OAuth callback is a
+top-level cross-site redirect back into the app, which =strict= would drop the cookie on; frontend
+and backend are always same-origin in practice (Vite proxy in dev, Caddy reverse-proxy in prod), so
+=lax= combined with the app's already-restrictive CORS config (single allowed origin,
+=credentials: true=) closes the practical CSRF gap without adding a separate CSRF token
+middleware. (3) =SESSION_SECRET= only failed startup when =NODE_ENV=== exactly ="production"=,
+silently falling back to a hardcoded string otherwise (unset =NODE_ENV=, a typo, staging, etc. all
+sailed through). Removed the =NODE_ENV= gate entirely — =SESSION_SECRET= is now required
+unconditionally, matching what the README already documented as a required variable for every
+environment.
+
+Added [[file:e2e/tests/auth.spec.ts][auth.spec.ts]] covering the fixed logout flow end to end (button click → session actually
+destroyed server-side, not just a client-side redirect). It needed its own isolated browser context
+rather than the suite's shared =page= fixture, since every other spec authenticates via the same
+=.auth/user.json= storageState written once by =global-setup.ts= and a real logout permanently
+destroys that session. First attempt at the isolated context got this wrong in a way worth noting:
+=@playwright/test='s =browser= fixture merges the project's =use= config (including
+=storageState: '.auth/user.json'=) into any =browser.newContext()= call for options you don't
+explicitly override — overriding only =baseURL= still leaves the new context holding the *shared*
+session cookie. Calling test-login on top of that triggers Passport's session-regenerate-on-login,
+which destroys the pre-existing session as a side effect of creating the new one, permanently
+breaking every other spec's session before the new test's own logout call even runs. Fix was to
+also explicitly pass =storageState: { cookies: [], origins: [] }=.
 
 ** DONE Phase 4 — Offline project creation
 :PROPERTIES:
