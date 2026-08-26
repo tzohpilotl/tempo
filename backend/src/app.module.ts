@@ -9,6 +9,8 @@ import { TrackingModule } from './tracking/tracking.module';
 import { User } from './database/entities/user.entity';
 import { Project } from './database/entities/project.entity';
 import { TrackingEvent } from './database/entities/tracking-event.entity';
+import { PushSubscription } from './database/entities/push-subscription.entity';
+import { NotificationsModule } from './notifications/notifications.module';
 import { HealthController } from './common/health.controller';
 
 @Module({
@@ -22,7 +24,7 @@ import { HealthController } from './common/health.controller';
     TypeOrmModule.forRoot({
       type: 'better-sqlite3',
       database: process.env.DATABASE_PATH ?? './data/time-tracker.sqlite',
-      entities: [User, Project, TrackingEvent],
+      entities: [User, Project, TrackingEvent, PushSubscription],
       synchronize: true,
       logging: process.env.NODE_ENV === 'development',
     }),
@@ -38,6 +40,7 @@ import { HealthController } from './common/health.controller';
     AuthModule,
     ProjectsModule,
     TrackingModule,
+    NotificationsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import type { User } from '../types';
 import { useTheme } from '../context/theme';
 import { auth } from '../api/client';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { logError } from '../utils/logger';
 import styles from './Sidebar.module.css';
 
@@ -11,6 +12,7 @@ interface Props {
 
 export default function Sidebar({ user }: Props) {
   const { theme, toggleTheme } = useTheme();
+  const { supported: pushSupported, subscribed: pushSubscribed, loading: pushLoading, toggle: togglePush } = usePushNotifications();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -34,6 +36,7 @@ export default function Sidebar({ user }: Props) {
 
   const themeTitle = theme === 'tui' ? 'Switch to default theme' : 'Switch to TUI theme';
   const themeIcon = theme === 'tui' ? <DefaultThemeIcon /> : <TerminalIcon />;
+  const pushTitle = pushSubscribed ? 'Turn off notifications' : 'Turn on notifications';
 
   return (
     <aside className={styles.sidebar}>
@@ -51,6 +54,16 @@ export default function Sidebar({ user }: Props) {
           <button className={styles.themeBtn} onClick={toggleTheme} title={themeTitle}>
             {themeIcon}
           </button>
+          {pushSupported && (
+            <button
+              className={styles.themeBtn}
+              onClick={togglePush}
+              disabled={pushLoading}
+              title={pushTitle}
+            >
+              {pushSubscribed ? <BellIcon /> : <BellOffIcon />}
+            </button>
+          )}
           <button
             className={styles.logoutBtn}
             onClick={handleLogout}
@@ -100,6 +113,16 @@ export default function Sidebar({ user }: Props) {
         <button className={styles.themeBtn} onClick={toggleTheme} title={themeTitle}>
           {themeIcon}
         </button>
+        {pushSupported && (
+          <button
+            className={styles.themeBtn}
+            onClick={togglePush}
+            disabled={pushLoading}
+            title={pushTitle}
+          >
+            {pushSubscribed ? <BellIcon /> : <BellOffIcon />}
+          </button>
+        )}
         <button
           className={styles.logoutBtn}
           onClick={handleLogout}
@@ -157,6 +180,27 @@ function DefaultThemeIcon() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="4"/>
       <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+    </svg>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+  );
+}
+
+function BellOffIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      <path d="M18.63 13A17.89 17.89 0 0 1 18 8"/>
+      <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/>
+      <path d="M18 8a6 6 0 0 0-9.33-5"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
     </svg>
   );
 }

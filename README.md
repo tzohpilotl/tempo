@@ -234,6 +234,10 @@ docker compose down -v            # also deletes data (⚠️ irreversible)
 | `FRONTEND_URL` | ✅ | — | Frontend origin used for CORS and post-login redirect |
 | `ALLOWED_EMAIL` | | *(unset)* | If set, only this Google email can log in |
 | `DATABASE_PATH` | | `./data/time-tracker.sqlite` | Path to the SQLite file |
+| `VAPID_PUBLIC_KEY` | | *(unset)* | Push notification public key — generate with `npx web-push generate-vapid-keys`. Push is disabled if unset |
+| `VAPID_PRIVATE_KEY` | | *(unset)* | Push notification private key, from the same command above |
+| `VAPID_SUBJECT` | | *(unset)* | `mailto:` address the push service can contact about this app, required alongside the keys above |
+| `VITE_VAPID_PUBLIC_KEY` | | *(unset)* | Same value as `VAPID_PUBLIC_KEY`, exposed to the frontend build |
 | `NODE_ENV` | | `development` | Set to `production` in Docker |
 
 ---
@@ -278,6 +282,14 @@ All endpoints are prefixed with `/api`. Protected routes require an active sessi
 
 Response includes computed `duration_seconds` and a flattened `project` summary.
 
+### Notifications
+
+| Method | Path | Auth | Body | Description |
+|---|---|---|---|---|
+| `POST` | `/notifications/subscribe` | ✅ | `{ endpoint, keys: { p256dh, auth } }` | Registers a browser push subscription for the current user |
+| `POST` | `/notifications/unsubscribe` | ✅ | `{ endpoint }` | Removes a push subscription |
+| `POST` | `/notifications/test` | ✅ | — | Sends a sample push to every subscription the current user has, for manual verification |
+
 ### Health
 
 | Method | Path | Description |
@@ -308,6 +320,7 @@ time-tracker/
 │       ├── auth/             # Google OAuth, guards, session serializer
 │       ├── projects/         # Projects CRUD
 │       ├── tracking/         # Tracking events CRUD
+│       ├── notifications/    # Push subscription management + sending (web-push)
 │       ├── database/
 │       │   ├── entities/     # TypeORM entities (User, Project, TrackingEvent)
 │       │   └── repositories/ # Repository interfaces + SQLite implementations

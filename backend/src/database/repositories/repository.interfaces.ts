@@ -1,6 +1,7 @@
 import { User } from '../entities/user.entity';
 import { Project } from '../entities/project.entity';
 import { TrackingEvent } from '../entities/tracking-event.entity';
+import { PushSubscription } from '../entities/push-subscription.entity';
 
 // ── User Repository ──────────────────────────────────────────────────────────
 
@@ -29,6 +30,20 @@ export interface IProjectRepository {
   update(projectId: string, name: string): Promise<Project>;
   delete(projectId: string): Promise<void>;
   getStatsForUser(userId: string): Promise<ProjectStats[]>;
+}
+
+// ── Push Subscription Repository ─────────────────────────────────────────────
+
+export interface IPushSubscriptionRepository {
+  findAllByUser(userId: string): Promise<PushSubscription[]>;
+  findByEndpoint(endpoint: string): Promise<PushSubscription | null>;
+  upsert(data: {
+    user_id: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+  }): Promise<PushSubscription>;
+  deleteByEndpoint(endpoint: string): Promise<void>;
 }
 
 // ── Tracking Event Repository ────────────────────────────────────────────────

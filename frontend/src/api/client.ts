@@ -2,6 +2,7 @@ import type { User, Project, ProjectStats, TrackingEvent, TrackingEventsPage, Tr
 import type { DateRange } from "../utils/dateRange";
 import { getCached, setCached } from "../utils/offlineCache";
 import { reportNetworkSuccess, reportNetworkFailure } from "../utils/networkStatus";
+import { getExistingPushSubscription, requestPushSubscription } from "../utils/pushNotifications";
 
 const BASE = "/api";
 
@@ -140,4 +141,41 @@ export const tracking = {
 
   delete: (eventId: string) =>
     request<void>(`/tracking/${eventId}`, { method: "DELETE" }),
+};
+
+// ── Notifications ──────────────────────────────────────────────────────────────
+
+/** Injected rather than imported directly by subscribe/unsubscribe below, so tests can pass a mock instead of mocking utils/pushNotifications.ts wholesale — same reasoning as drainQueue()'s RequestFn parameter in offlineQueue.ts. */
+type RequestPushSubscriptionFn = (vapidPublicKey: string) => Promise<PushSubscription>;
+type GetExistingPushSubscriptionFn = () => Promise<PushSubscription | null>;
+
+export const notifications = {
+  /** Requests permission, subscribes via the browser's push service, and registers the subscription with the backend. */
+  subscribe: async (subscribe: RequestPushSubscriptionFn = requestPushSubscription): Promise<void> => {
+    const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+    if (!vapidPublicKey) throw new Error("VITE_VAPID_PUBLIC_KEY is not configured");
+
+    const subscription = await subscribe(vapidPublicKey);
+    await request<void>("/notifications/subscribe", {
+      method: "POST",
+      body: JSON.stringify(subscription.toJSON()),
+    });
+  },
+
+  /** Unsubscribes both the backend record and the browser's own subscription. Safe to call with nothing subscribed. */
+  unsubscribe: async (getExisting: GetExistingPushSubscriptionFn = getExistingPushSubscription): Promise<void> => {
+    const subscription = await getExisting();
+    if (!subscription) return;
+
+    await request<void>("/notifications/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ endpoint: subscription.endpoint }),
+    });
+    await subscription.unsubscribe();
+  },
+
+  isSubscribed: async (getExisting: GetExistingPushSubscriptionFn = getExistingPushSubscription): Promise<boolean> =>
+    (await getExisting()) !== null,
+
+  test: () => request<void>("/notifications/test", { method: "POST" }),
 };

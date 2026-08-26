@@ -46,7 +46,8 @@ Delivered by [[*Offline support][Offline support]].
 Delivered by [[*PWA support][PWA support]].
 
 ** TODO Push notifications for reminders and events
-Delivered by [[*Push notifications][Push notifications]].
+Delivered by [[*Push notifications][Push notifications]]. Hardened by [[*Add native app support][Add native app
+support]].
 
 ** TODO Tag-based session organization across projects
 Delivered by [[*Use tags to group sessions from different projects][Use tags to group sessions from different projects]].
@@ -80,6 +81,45 @@ transition (most recently completed first), rather than mixed in with what's sti
 :PROPERTIES:
 :CREATED: [2026-08-13 Thu]
 :END:
+See [[*Push Notifications Design][Push Notifications Design]] for the design and tradeoff analysis.
+
+*** TODO Phase 1 — Web Push infrastructure
+:PROPERTIES:
+:CREATED: [2026-08-25 Tue]
+:END:
+VAPID keypair, a `PushSubscription` entity, subscribe/unsubscribe endpoints, service worker
+`push`/`notificationclick` handlers, and an opt-in toggle in the UI. No triggers sent yet — verified
+with a manual test-send.
+
+*** TODO Phase 2 — Long-running-session reminder
+:PROPERTIES:
+:CREATED: [2026-08-25 Tue]
+:END:
+Cron job (`@nestjs/schedule`) scanning for tracking events past a still-running threshold (e.g. 3h
+with no `stopped_at`), sending one push per session via `web-push`, deduplicated so it doesn't repeat.
+
+*** TODO Phase 3 — Subscription hardening                            :maybe:
+:PROPERTIES:
+:CREATED: [2026-08-25 Tue]
+:END:
+Prune subscriptions on a 410/expired send failure; document the iOS installed-PWA-only constraint in
+the opt-in UI copy.
+
+** TODO Adopt a proper database migration system
+:PROPERTIES:
+:CREATED: [2026-08-25 Tue]
+:END:
+Cross-cutting infrastructure hardening — no single feature of its own, same reasoning as [[*Have a
+free and a premium tier with different features][Have a free and a premium tier with different
+features]] below. Surfaced while adding [[*Push notifications][Push notifications]]'s
+=PushSubscription= entity: TypeORM's =synchronize: true=
+([[file:backend/src/app.module.ts][app.module.ts]]) auto-created its table with no migration file, which is convenient for a new table but
+is a blunt instrument in general — it can also silently alter or drop columns to match entity changes
+on every startup, with no review step and no way to roll back a bad schema change independent of a
+code rollback. Replace it with an explicit migration system (TypeORM's own migration generator is the
+obvious first choice, already available without a new dependency) and turn =synchronize= off, so
+every schema change is a reviewed, versioned file instead of an implicit side effect of starting the
+app.
 
 ** TODO Use tags to group sessions from different projects
 :PROPERTIES:
@@ -122,6 +162,15 @@ vs. paid, rather than delivering a feature of its own. No single feature link.
 :PROPERTIES:
 :CREATED: [2026-08-12 Wed]
 :END:
+
+** TODO Add native app support (Capacitor wrapper for iOS/Android)    :maybe:
+:PROPERTIES:
+:CREATED: [2026-08-25 Tue]
+:END:
+Hardens [[*Push notifications for reminders and events][Push notifications for reminders and events]] — Web Push already covers Android and
+installed-PWA iOS 16.4+, so this is only worth doing if a real gap shows up later (push without the
+PWA installed, or native-only UI). See [[*Push Notifications Design][Push Notifications Design]]. Also weigh against the
+bandwidth constraint noted in [[*Compatibility][Compatibility]], which is why the app stays web-only for now.
 
 ** DONE Harden auth/session security
 :PROPERTIES:
@@ -355,6 +404,51 @@ single-replica note in the Migration plan below).
 - [X] Note the remaining limit: still single-replica only (a SQLite-file store can't be shared
   across multiple backend containers) — out of scope unless/until scaling beyond one container is
   needed.
+
+
+* Push Notifications Design
+:PROPERTIES:
+:CREATED: [2026-08-25 Tue]
+:END:
+Design and tradeoff analysis backing [[*Push notifications][Push notifications]] in the Roadmap.
+
+** Problem
+Features Overview promises push notifications "for reminders and events," but no reminder/goal
+engine exists yet — [[*Set daily, weekly or monthly goals or budgets][Set daily, weekly or monthly goals or budgets]] and [[*Define repeatable tasks][Define repeatable
+tasks]] are both still open. So Phase 1 has to ship the subscribe/send infrastructure without a real
+reminder source to trigger off of, then attach one concrete trigger — a long-running-session nudge —
+built from data that already exists ([[file:backend/src/database/entities/tracking-event.entity.ts][tracking-event.entity.ts]]), rather than waiting on those other
+epics. Triggers tied to goals or recurring tasks become natural follow-ups once those epics land.
+
+** Design decisions and tradeoffs
+
+*** Delivery: Web Push, not a native wrapper
+Considered wrapping the PWA in Capacitor to get real APNs/FCM push. Rejected for now: [[*Compatibility][Compatibility]]
+already establishes the team doesn't have the bandwidth to build or maintain a native/hybrid app, and
+Web Push already covers Android plus installed-PWA iOS (16.4+) with no app-store distribution or
+native build pipeline required. Tracked separately as [[*Add native app support (Capacitor wrapper for iOS/Android)][Add native app support (Capacitor wrapper for
+iOS/Android)]] in the Roadmap, tagged =:maybe:=, in case a real gap shows up later (push without the
+PWA installed, or native-only UI needs).
+
+*** Protocol: Web Push + VAPID, no third-party push vendor
+The standard W3C Push API with VAPID-signed requests (via the =web-push= npm package) needs no
+external account or vendor (Firebase, OneSignal) and adds only one new dependency — consistent with
+how this app has generally avoided vendor lock-in where a standard protocol exists. Subscriptions are
+stored per-user in the existing SQLite database, the same pattern already used for sessions.
+
+*** Trigger source: backend cron scan, not a client-side timer
+A client-side timer only fires while a tab is open, which defeats the purpose of push (the whole
+point is reaching a closed app). A backend cron job (=@nestjs/schedule=) scanning for eligible
+tracking events and sending via =web-push= works regardless of whether the client is open, matching
+how sync and other background concerns already live server-side in this app.
+
+*** iOS constraint
+Web Push only works on iOS when the PWA is installed to the home screen (no push in a regular Safari
+tab, and only iOS 16.4+). This needs to be surfaced in the opt-in UI copy itself, not just documented
+here — otherwise a user who hasn't installed the app will see a toggle that silently does nothing.
+
+** Phases
+See the subtasks under [[*Push notifications][Push notifications]] in the Roadmap for the phase breakdown and status.
 
 
 * Compatibility

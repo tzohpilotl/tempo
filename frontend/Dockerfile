@@ -6,6 +6,8 @@ RUN npm ci
 COPY . .
 ARG VITE_SENTRY_DSN
 ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
+ARG VITE_VAPID_PUBLIC_KEY
+ENV VITE_VAPID_PUBLIC_KEY=$VITE_VAPID_PUBLIC_KEY
 RUN npm run build
 
 # ── Stage 2: Nginx serves the static SPA ─────────────────────────────────────
