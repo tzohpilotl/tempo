@@ -1,7 +1,10 @@
 #+TITLE: Design
 #+AUTHOR: Mario Alejandro Gil Lázaro
 
-* Purpose
+* Purpose                                                            :ATTACH:
+:PROPERTIES:
+:ID:       5786e025-f9f7-4a98-abce-b64fd7dd5614
+:END:
 
 This is a document that describe the Tempo app from the product perspective. Its roadmap works as a
 backlog because it holds the action items identified by the product manager; it works as a tracker
@@ -23,6 +26,9 @@ A feature entry should link to them, e.g. "delivered by [[*Offline support][Offl
 epic link over time. Epics with no single shippable feature of their own (pure internal hardening 
 with no new user-facing capability, or a cross-cutting packaging change like tiering) won't have a 
 feature pointing back to them.
+
+
+[[file:./diagram.png]]
 
 
 * Features Overview
@@ -120,6 +126,15 @@ code rollback. Replace it with an explicit migration system (TypeORM's own migra
 obvious first choice, already available without a new dependency) and turn =synchronize= off, so
 every schema change is a reviewed, versioned file instead of an implicit side effect of starting the
 app.
+
+Once migrations exist, also add the missing =@ManyToOne(() => User)=/=@JoinColumn= relations from
+[[file:backend/src/database/entities/project.entity.ts][project.entity.ts]] and [[file:backend/src/database/entities/push-subscription.entity.ts][push-subscription.entity.ts]] to
+[[file:backend/src/database/entities/user.entity.ts][user.entity.ts]] — both currently just store a plain =user_id= string column with no FK, unlike
+=tracking_events='s real relation to =projects= (=onDelete: 'SET NULL'=). No FK means no constraint
+against an orphaned =user_id=, no defined =onDelete= behavior if a user row is ever removed, and no
+way to eager-load the owning user via =relations: ['user']=. Doing this under =synchronize: true=
+today would apply silently with no review step — exactly the kind of change this migration system
+is meant to require a reviewed, versioned file for instead.
 
 ** TODO Use tags to group sessions from different projects
 :PROPERTIES:
