@@ -172,6 +172,63 @@ installed-PWA iOS 16.4+, so this is only worth doing if a real gap shows up late
 PWA installed, or native-only UI). See [[*Push Notifications Design][Push Notifications Design]]. Also weigh against the
 bandwidth constraint noted in [[*Compatibility][Compatibility]], which is why the app stays web-only for now.
 
+** DONE Make the API client's cache and offline queue injectable dependencies
+:PROPERTIES:
+:CREATED: [2026-11-01 Sun]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-11-01 Sun 20:33]
+:END:
+Cross-cutting internal refactor — no single feature of its own, same reasoning as [[*Adopt a proper
+database migration system][Adopt a proper database migration system]] above. [[file:frontend/src/api/client.ts][api/client.ts]]'s shared
+=request()= currently imports [[file:frontend/src/utils/offlineCache.ts][utils/offlineCache.ts]] directly (=getCached=/=setCached=) and
+=utils/offlineQueue.ts= currently takes the opposite direction — it's handed =request()= as a
+=RequestFn= parameter rather than importing =client.ts= — so the two modules are wired together in
+two different, inconsistent ways, and the "does this response need caching / does this failure need
+queuing" decision lives partly in application code (App.tsx wiring =drainQueue= to =request=, pages
+calling =getPendingChanges=/=applyPendingChanges= directly) instead of being encapsulated behind the
+API client itself.
+
+*** DONE Phase 1 — Inject the cache and offline queue into the API client
+:PROPERTIES:
+:CREATED: [2026-11-01 Sun]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-11-01 Sun 20:24]
+:END:
+Make =offlineCache.ts='s =getCached=/=setCached= an injected dependency of =request()= (constructor-
+or parameter-injected, default to the real IndexedDB-backed implementation) instead of a direct
+module import, so the client's caching behavior can be swapped or mocked without reaching into
+=utils/offlineCache.ts=. [[file:frontend/src/api/client.test.ts][client.test.ts]] already exercises the cache-fallback behavior indirectly
+through =fake-indexeddb=; revisit whether injection lets those tests use a plain in-memory fake
+instead.
+
+Also invert today's queue wiring so =client.ts= owns the relationship: the API client takes the
+offline queue (drain/enqueue behavior) as a dependency, rather than =offlineQueue.ts= being handed
+=request()= as a =RequestFn= and application code (App.tsx, DashboardPage, SessionsPage, Timer.tsx)
+separately importing both modules and gluing them together. Goal is that "application code" (pages,
+components) talks only to the API client's public surface — =auth=/=projects=/=tracking=/
+=notifications= plus whatever queue-status surface pages need (=useQueueStatus=,
+=getPendingChanges=, =applyPendingChanges=) — without reaching past it into =offlineQueue.ts= or
+=offlineCache.ts= directly. Both the cache and the queue go in together since they're both
+dependencies of the same =request()= call path and inverting one without the other would leave
+=client.ts= with two different wiring styles at once.
+
+*** DONE Phase 2 — Switch the cache and queue to object-oriented patterns
+:PROPERTIES:
+:CREATED: [2026-11-01 Sun]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-11-01 Sun 20:33]
+:END:
+Once both are clean, injectable dependencies (Phase 1), convert =offlineCache.ts= and
+=offlineQueue.ts= from their current module-level function exports (=getCached=/=setCached=,
+=queueEventCreate=/=queueEventUpdate=/=queueEventDelete=/=drainQueue=/etc.) into classes — e.g. an
+=OfflineCache= and an =OfflineQueue= instance, each owning its own IndexedDB handle — so the API
+client depends on two concrete objects rather than two grab-bags of module-level functions. Revisit
+=useQueueStatus='s =useSyncExternalStore= wiring and the test suites
+(=offlineCache.test.ts=/=offlineQueue.test.ts=/=client.test.ts=) for whatever shape this takes.
+
 ** DONE Harden auth/session security
 :PROPERTIES:
 :CREATED: [2026-08-19 Wed]
@@ -462,6 +519,39 @@ devices (see [[*Roadmap][Roadmap]]).
 * Changelog
 
 Completed work items, newest first. Merged in from the old TODO.org scratch file.
+
+** DONE Make the API client's cache and offline queue injectable dependencies
+:PROPERTIES:
+:CREATED: [2026-11-01 Sun]
+:END:
+Part of [[*Make the API client's cache and offline queue injectable dependencies][Make the API client's cache and offline queue injectable dependencies]], both phases.
+
+[[file:frontend/src/api/client.ts][client.ts]]'s shared =request()= now falls back to/writes through an injected =cache: ApiCache=
+(=get=/=set=) instead of importing =offlineCache.ts='s =getCached=/=setCached= directly, defaulting
+to the one real cache instance. Separately, =tracking.log=/=update=/=delete= now own the "try the
+network, fall back to the offline queue on a network-level failure" decision themselves via an
+injected =queue: ApiQueue=, including the still-unsynced-local-id short-circuit that used to be
+hand-rolled in every caller. =tracking= also re-exports =isLocalEventId=, =getPendingChanges=,
+=applyPendingChanges=, =syncPendingChanges=, and =useQueueStatus=, so application code never needs
+to import =offlineQueue.ts= or =offlineCache.ts= directly — [[file:frontend/src/components/Timer.tsx][Timer.tsx]],
+[[file:frontend/src/pages/DashboardPage.tsx][DashboardPage.tsx]], [[file:frontend/src/pages/SessionsPage.tsx][SessionsPage.tsx]],
+[[file:frontend/src/layouts/AppLayout.tsx][AppLayout.tsx]], and [[file:frontend/src/App.tsx][App.tsx]] all dropped their direct imports of either
+module in favor of =tracking.*=. =configureCache=/=configureQueue= exist as the injection seam for
+tests or a future alternate implementation.
+
+=offlineCache.ts= and =offlineQueue.ts= were then converted from grab-bags of module-level functions
+into classes — =OfflineCache= and =OfflineQueue= — each still owning its own IndexedDB handle
+internally, with =offlineCache=/=offlineQueue= exported as the one real singleton instance of each
+(same reasoning as =networkStatus.ts='s singleton: there's only one real cache/queue for the whole
+app). =OfflineQueue= takes an =OfflineCache= instance in its constructor (defaulting to the real
+one) for its own project-name lookups, rather than importing =offlineCache.ts= functions
+directly — the same injection pattern now applies one layer down. =useQueueStatus= became a
+standalone function wrapping the singleton's bound =subscribe=/=getSnapshot= methods, since
+=useSyncExternalStore= needs plain functions, not methods called as a hook. Updated
+=offlineCache.test.ts=/=offlineQueue.test.ts= to call the instances' methods directly instead of the
+removed standalone functions; =client.test.ts= needed no changes since it only ever exercised
+=client.ts='s public surface. Verified with =tsc --noEmit=, the full Vitest suite, and a production
+build.
 
 ** DONE Harden auth/session security
 :PROPERTIES:

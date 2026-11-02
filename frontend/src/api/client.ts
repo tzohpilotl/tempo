@@ -1,12 +1,58 @@
 import type { User, Project, ProjectStats, TrackingEvent, TrackingEventsPage, TrackingSummaryResponse } from "../types";
 import type { DateRange } from "../utils/dateRange";
-import { getCached, setCached } from "../utils/offlineCache";
+import { offlineCache } from "../utils/offlineCache";
+import { offlineQueue, useQueueStatus, type QueuedEventPayload, type PendingChanges, type SyncConflict } from "../utils/offlineQueue";
 import { reportNetworkSuccess, reportNetworkFailure } from "../utils/networkStatus";
 import { getExistingPushSubscription, requestPushSubscription } from "../utils/pushNotifications";
 
 const BASE = "/api";
 
-/** Exported so App.tsx can inject it into offlineQueue.ts's sync engine — everything else should go through auth/projects/tracking. */
+/**
+ * The cache `request()` falls back to on a network-level GET failure, and
+ * writes through on a successful GET. Defaults to the one real OfflineCache
+ * instance in utils/offlineCache.ts — constructor-style injected rather than
+ * imported and used directly, so the client's caching behavior can be
+ * swapped (tests, or a different OfflineCache instance) without reaching
+ * into that module. See the "Make the API client's cache and offline queue
+ * injectable dependencies" Roadmap item in DESIGN.org.
+ */
+export interface ApiCache {
+  get<T>(path: string): Promise<T | undefined>;
+  set(path: string, value: unknown): Promise<void>;
+}
+
+let cache: ApiCache = offlineCache;
+
+/** Swaps the cache request() reads from/writes to. Exported for tests. */
+export function configureCache(next: ApiCache = offlineCache): void {
+  cache = next;
+}
+
+/**
+ * The offline write queue tracking.log/update/delete fall back to on a
+ * network-level failure. Defaults to the one real OfflineQueue instance in
+ * utils/offlineQueue.ts. Injected the same way as the cache above, so
+ * application code never needs to import offlineQueue.ts itself — it goes
+ * through this module's public surface (tracking.*, syncPendingChanges,
+ * getPendingChanges, applyPendingChanges, useQueueStatus) instead.
+ */
+export interface ApiQueue {
+  enqueueCreate(payload: QueuedEventPayload): Promise<TrackingEvent>;
+  enqueueUpdate(eventId: string, payload: QueuedEventPayload): Promise<TrackingEvent>;
+  enqueueDelete(eventId: string): Promise<void>;
+  isLocalId(eventId: string): boolean;
+  drain(requestFn: typeof request): Promise<void>;
+  getPendingChanges(): Promise<PendingChanges>;
+  applyPendingChanges(events: TrackingEvent[], pending: Pick<PendingChanges, "updates" | "deletes">, projects: Project[]): TrackingEvent[];
+}
+
+let queue: ApiQueue = offlineQueue;
+
+/** Swaps the offline queue tracking.* falls back to. Exported for tests. */
+export function configureQueue(next: ApiQueue = offlineQueue): void {
+  queue = next;
+}
+
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const isGet = (options?.method ?? "GET").toUpperCase() === "GET";
 
@@ -22,10 +68,10 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
     reportNetworkSuccess();
   } catch (networkErr) {
     reportNetworkFailure();
-    // Only GETs have a cached fallback to offer — writes made offline still
-    // fail here today (queuing them is a later phase of offline support).
+    // Only GETs have a cached fallback to offer — fallback for writes is
+    // tracking.log/update/delete's job (queuing them via `queue` above).
     if (isGet) {
-      const cached = await getCached<T>(path);
+      const cached = await cache.get<T>(path);
       if (cached !== undefined) return cached;
     }
     throw networkErr;
@@ -39,7 +85,7 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   // 204 No Content — return undefined cast to T
   if (res.status === 204) return undefined as T;
   const data = (await res.json()) as T;
-  if (isGet) await setCached(path, data);
+  if (isGet) await cache.set(path, data);
   return data;
 }
 
@@ -114,38 +160,69 @@ export const tracking = {
     return request<TrackingSummaryResponse>(`/tracking/summary?${qs.toString()}`);
   },
 
-  log: (payload: {
-    started_at: string;
-    stopped_at: string;
-    task_description?: string;
-    project_id?: string;
-  }) =>
-    request<TrackingEvent>("/tracking", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+  /** A real ApiError (e.g. a 409 overlap) still surfaces as a rejection; a network-level failure falls back to the offline queue instead. */
+  log: async (payload: QueuedEventPayload): Promise<TrackingEvent> => {
+    try {
+      return await request<TrackingEvent>("/tracking", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      return queue.enqueueCreate(payload);
+    }
+  },
 
-  update: (
-    eventId: string,
-    payload: {
-      started_at?: string;
-      stopped_at?: string;
-      task_description?: string;
-      project_id?: string;
-    },
-  ) =>
-    request<TrackingEvent>(`/tracking/${eventId}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }),
+  /** An edit to a still-unsynced local-only event (see isLocalEventId) has nothing server-side to PATCH — it always goes straight to the queue, online or not. */
+  update: async (eventId: string, payload: QueuedEventPayload): Promise<TrackingEvent> => {
+    if (queue.isLocalId(eventId)) return queue.enqueueUpdate(eventId, payload);
+    try {
+      return await request<TrackingEvent>(`/tracking/${eventId}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      return queue.enqueueUpdate(eventId, payload);
+    }
+  },
 
-  delete: (eventId: string) =>
-    request<void>(`/tracking/${eventId}`, { method: "DELETE" }),
+  /** Same local-only short-circuit as update above. */
+  delete: async (eventId: string): Promise<void> => {
+    if (queue.isLocalId(eventId)) return queue.enqueueDelete(eventId);
+    try {
+      await request<void>(`/tracking/${eventId}`, { method: "DELETE" });
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      await queue.enqueueDelete(eventId);
+    }
+  },
+
+  /** True for the optimistic id of a not-yet-synced queued creation — callers use this to decide whether an edit/delete can skip straight to the queue (see update/delete above) or needs the real event list filtered/patched (see applyPendingChanges). */
+  isLocalEventId: (eventId: string): boolean => queue.isLocalId(eventId),
+
+  /** Snapshot of every queued-but-unsynced change, shaped for merging into whatever a page just fetched. */
+  getPendingChanges: (): Promise<PendingChanges> => queue.getPendingChanges(),
+
+  /** Applies queued edits/deletes onto an already-fetched event list — see utils/offlineQueue.ts's applyPendingChanges for the merge rules. */
+  applyPendingChanges: (
+    events: TrackingEvent[],
+    pending: Pick<PendingChanges, "updates" | "deletes">,
+    projects: Project[],
+  ): TrackingEvent[] => queue.applyPendingChanges(events, pending, projects),
+
+  /** Drains every queued change, oldest first, stopping at the first real conflict — see OfflineQueue.drain in utils/offlineQueue.ts for the full policy. Call on reconnect. */
+  syncPendingChanges: (): Promise<void> => queue.drain(request),
+
+  /** Reactive {pendingCount, conflict, pendingIds} for the offline banner/badges — see utils/offlineQueue.ts's useQueueStatus. */
+  useQueueStatus,
 };
+
+export type { SyncConflict, PendingChanges, QueuedEventPayload };
 
 // ── Notifications ──────────────────────────────────────────────────────────────
 
-/** Injected rather than imported directly by subscribe/unsubscribe below, so tests can pass a mock instead of mocking utils/pushNotifications.ts wholesale — same reasoning as drainQueue()'s RequestFn parameter in offlineQueue.ts. */
+/** Injected rather than imported directly by subscribe/unsubscribe below, so tests can pass a mock instead of mocking utils/pushNotifications.ts wholesale — same reasoning as OfflineQueue.drain's RequestFn parameter in offlineQueue.ts. */
 type RequestPushSubscriptionFn = (vapidPublicKey: string) => Promise<PushSubscription>;
 type GetExistingPushSubscriptionFn = () => Promise<PushSubscription | null>;
 

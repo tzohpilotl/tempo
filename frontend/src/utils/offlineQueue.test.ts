@@ -1,13 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  queueEventCreate,
-  queueEventUpdate,
-  queueEventDelete,
-  getPendingCreates,
-  getPendingChanges,
-  applyPendingChanges,
-  drainQueue,
-} from './offlineQueue';
+import { offlineQueue } from './offlineQueue';
 import { ApiError } from '../api/client';
 import type { TrackingEvent } from '../types';
 
@@ -35,13 +27,13 @@ const syncedEvent = (overrides: Partial<TrackingEvent> = {}): TrackingEvent => (
   ...overrides,
 });
 
-describe('offlineQueue', () => {
+describe('OfflineQueue', () => {
   beforeEach(async () => {
     await clearQueue();
   });
 
   it('returns an optimistic event with a local id', async () => {
-    const event = await queueEventCreate({
+    const event = await offlineQueue.enqueueCreate({
       started_at: '2026-01-01T10:00:00.000Z',
       stopped_at: '2026-01-01T10:30:00.000Z',
       task_description: 'Offline work',
@@ -53,17 +45,17 @@ describe('offlineQueue', () => {
   });
 
   it('getPendingCreates includes a queued event not yet synced', async () => {
-    const queued = await queueEventCreate({
+    const queued = await offlineQueue.enqueueCreate({
       started_at: '2026-01-01T10:00:00.000Z',
       stopped_at: '2026-01-01T10:15:00.000Z',
     });
 
-    const pending = await getPendingCreates();
+    const pending = await offlineQueue.getPendingCreates();
     expect(pending.map((e) => e.tracking_event_id)).toContain(queued.tracking_event_id);
   });
 
-  it('drainQueue syncs a queued event via the injected request function and removes it from the queue', async () => {
-    const queued = await queueEventCreate({
+  it('drain syncs a queued event via the injected request function and removes it from the queue', async () => {
+    const queued = await offlineQueue.enqueueCreate({
       started_at: '2026-01-02T10:00:00.000Z',
       stopped_at: '2026-01-02T10:15:00.000Z',
     });
@@ -77,52 +69,52 @@ describe('offlineQueue', () => {
       project: null,
     });
 
-    await drainQueue(requestFn);
+    await offlineQueue.drain(requestFn);
 
     expect(requestFn).toHaveBeenCalledWith(
       '/tracking',
       expect.objectContaining({ method: 'POST' }),
     );
-    const pending = await getPendingCreates();
+    const pending = await offlineQueue.getPendingCreates();
     expect(pending.map((e) => e.tracking_event_id)).not.toContain(queued.tracking_event_id);
   });
 
   it('stops draining and leaves the item queued on a real rejection', async () => {
-    const queued = await queueEventCreate({
+    const queued = await offlineQueue.enqueueCreate({
       started_at: '2026-01-03T10:00:00.000Z',
       stopped_at: '2026-01-03T10:15:00.000Z',
     });
 
     const requestFn = vi.fn().mockRejectedValue(new ApiError(409, 'This session overlaps an existing one'));
 
-    await drainQueue(requestFn);
+    await offlineQueue.drain(requestFn);
 
-    const pending = await getPendingCreates();
+    const pending = await offlineQueue.getPendingCreates();
     expect(pending.map((e) => e.tracking_event_id)).toContain(queued.tracking_event_id);
   });
 
   it('stops draining silently on a renewed network failure, leaving the item queued', async () => {
-    const queued = await queueEventCreate({
+    const queued = await offlineQueue.enqueueCreate({
       started_at: '2026-01-04T10:00:00.000Z',
       stopped_at: '2026-01-04T10:15:00.000Z',
     });
 
     const requestFn = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
-    await drainQueue(requestFn);
+    await offlineQueue.drain(requestFn);
 
-    const pending = await getPendingCreates();
+    const pending = await offlineQueue.getPendingCreates();
     expect(pending.map((e) => e.tracking_event_id)).toContain(queued.tracking_event_id);
   });
 
-  it('queueEventUpdate on a still-queued local creation folds the edit into the create, without adding a separate op', async () => {
-    const queued = await queueEventCreate({
+  it('enqueueUpdate on a still-queued local creation folds the edit into the create, without adding a separate op', async () => {
+    const queued = await offlineQueue.enqueueCreate({
       started_at: '2026-01-05T10:00:00.000Z',
       stopped_at: '2026-01-05T10:15:00.000Z',
       task_description: 'Original',
     });
 
-    const updated = await queueEventUpdate(queued.tracking_event_id, {
+    const updated = await offlineQueue.enqueueUpdate(queued.tracking_event_id, {
       started_at: '2026-01-05T10:00:00.000Z',
       stopped_at: '2026-01-05T10:30:00.000Z',
       task_description: 'Edited',
@@ -132,97 +124,97 @@ describe('offlineQueue', () => {
     expect(updated.task_description).toBe('Edited');
     expect(updated.duration_seconds).toBe(1800);
 
-    const pending = await getPendingCreates();
+    const pending = await offlineQueue.getPendingCreates();
     expect(pending).toHaveLength(1);
     expect(pending[0].task_description).toBe('Edited');
   });
 
-  it('queueEventUpdate on a real synced id queues an update op that drainQueue PATCHes', async () => {
-    const updated = await queueEventUpdate('server-1', {
+  it('enqueueUpdate on a real synced id queues an update op that drain PATCHes', async () => {
+    const updated = await offlineQueue.enqueueUpdate('server-1', {
       started_at: '2026-01-06T10:00:00.000Z',
       stopped_at: '2026-01-06T11:00:00.000Z',
       task_description: 'Edited offline',
     });
     expect(updated.tracking_event_id).toBe('server-1');
 
-    const pending = await getPendingChanges();
+    const pending = await offlineQueue.getPendingChanges();
     expect(pending.updates.get('server-1')?.task_description).toBe('Edited offline');
 
     const requestFn = vi.fn().mockResolvedValue(updated);
-    await drainQueue(requestFn);
+    await offlineQueue.drain(requestFn);
 
     expect(requestFn).toHaveBeenCalledWith(
       '/tracking/server-1',
       expect.objectContaining({ method: 'PATCH' }),
     );
-    expect((await getPendingChanges()).updates.has('server-1')).toBe(false);
+    expect((await offlineQueue.getPendingChanges()).updates.has('server-1')).toBe(false);
   });
 
   it('a second queued edit to the same synced event replaces the first rather than stacking', async () => {
-    await queueEventUpdate('server-1', {
+    await offlineQueue.enqueueUpdate('server-1', {
       started_at: '2026-01-06T10:00:00.000Z',
       stopped_at: '2026-01-06T11:00:00.000Z',
       task_description: 'First edit',
     });
-    await queueEventUpdate('server-1', {
+    await offlineQueue.enqueueUpdate('server-1', {
       started_at: '2026-01-06T10:00:00.000Z',
       stopped_at: '2026-01-06T11:00:00.000Z',
       task_description: 'Second edit',
     });
 
-    const pending = await getPendingChanges();
+    const pending = await offlineQueue.getPendingChanges();
     expect(pending.updates.get('server-1')?.task_description).toBe('Second edit');
 
     const requestFn = vi.fn().mockResolvedValue({});
-    await drainQueue(requestFn);
+    await offlineQueue.drain(requestFn);
     expect(requestFn).toHaveBeenCalledTimes(1);
   });
 
-  it('queueEventDelete on a still-queued local creation drops it entirely — nothing to sync', async () => {
-    const queued = await queueEventCreate({
+  it('enqueueDelete on a still-queued local creation drops it entirely — nothing to sync', async () => {
+    const queued = await offlineQueue.enqueueCreate({
       started_at: '2026-01-07T10:00:00.000Z',
       stopped_at: '2026-01-07T10:15:00.000Z',
     });
 
-    await queueEventDelete(queued.tracking_event_id);
+    await offlineQueue.enqueueDelete(queued.tracking_event_id);
 
-    const pending = await getPendingCreates();
+    const pending = await offlineQueue.getPendingCreates();
     expect(pending).toHaveLength(0);
 
     const requestFn = vi.fn();
-    await drainQueue(requestFn);
+    await offlineQueue.drain(requestFn);
     expect(requestFn).not.toHaveBeenCalled();
   });
 
-  it('queueEventDelete on a real synced id drops any queued update for it and queues a delete op that drainQueue DELETEs', async () => {
-    await queueEventUpdate('server-2', {
+  it('enqueueDelete on a real synced id drops any queued update for it and queues a delete op that drain DELETEs', async () => {
+    await offlineQueue.enqueueUpdate('server-2', {
       started_at: '2026-01-08T10:00:00.000Z',
       stopped_at: '2026-01-08T10:15:00.000Z',
     });
-    await queueEventDelete('server-2');
+    await offlineQueue.enqueueDelete('server-2');
 
-    const pending = await getPendingChanges();
+    const pending = await offlineQueue.getPendingChanges();
     expect(pending.updates.has('server-2')).toBe(false);
     expect(pending.deletes.has('server-2')).toBe(true);
 
     const requestFn = vi.fn().mockResolvedValue(undefined);
-    await drainQueue(requestFn);
+    await offlineQueue.drain(requestFn);
 
     expect(requestFn).toHaveBeenCalledWith('/tracking/server-2', expect.objectContaining({ method: 'DELETE' }));
-    expect((await getPendingChanges()).deletes.has('server-2')).toBe(false);
+    expect((await offlineQueue.getPendingChanges()).deletes.has('server-2')).toBe(false);
   });
 
   it('applyPendingChanges filters deleted events and patches edited ones', async () => {
-    await queueEventDelete('server-1');
-    await queueEventUpdate('server-2', {
+    await offlineQueue.enqueueDelete('server-1');
+    await offlineQueue.enqueueUpdate('server-2', {
       started_at: '2026-01-09T10:00:00.000Z',
       stopped_at: '2026-01-09T11:00:00.000Z',
       task_description: 'Patched',
     });
 
-    const pending = await getPendingChanges();
+    const pending = await offlineQueue.getPendingChanges();
     const events = [syncedEvent({ tracking_event_id: 'server-1' }), syncedEvent({ tracking_event_id: 'server-2' })];
-    const result = applyPendingChanges(events, pending, []);
+    const result = offlineQueue.applyPendingChanges(events, pending, []);
 
     expect(result.map((e) => e.tracking_event_id)).toEqual(['server-2']);
     expect(result[0].task_description).toBe('Patched');

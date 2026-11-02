@@ -1,18 +1,10 @@
 import { useState, useEffect } from 'react';
-import { projects as projectsApi, tracking as trackingApi, ApiError } from '../api/client';
+import { projects as projectsApi, tracking as trackingApi } from '../api/client';
 import EventLog from '../components/EventLog';
 import PieChart from '../components/PieChart';
 import type { Project, TrackingEvent, TrackingSummaryResponse } from '../types';
 import { logError } from '../utils/logger';
 import { getDayRange, getWeekRange, getMonthRange } from '../utils/dateRange';
-import {
-  getPendingChanges,
-  applyPendingChanges,
-  queueEventUpdate,
-  queueEventDelete,
-  isLocalEventId,
-  useQueueStatus,
-} from '../utils/offlineQueue';
 import styles from './SessionsPage.module.css';
 
 const PAGE_SIZE = 20;
@@ -46,7 +38,7 @@ export default function SessionsPage() {
   const [listLoading, setListLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(true);
   const [eventsOpen, setEventsOpen] = useState(true);
-  const { pendingIds } = useQueueStatus();
+  const { pendingIds } = trackingApi.useQueueStatus();
 
   useEffect(() => {
     projectsApi.list().then(setProjects).catch(logError);
@@ -61,8 +53,8 @@ export default function SessionsPage() {
   // edits/deletes apply regardless of page or filter, since the event they
   // target can be sitting on any page.
   const mergeWithPending = async (data: TrackingEvent[]): Promise<TrackingEvent[]> => {
-    const pending = await getPendingChanges();
-    const synced = applyPendingChanges(data, pending, projects);
+    const pending = await trackingApi.getPendingChanges();
+    const synced = trackingApi.applyPendingChanges(data, pending, projects);
     if (page !== 1 || projectFilter) return synced;
     const stillPending = pending.creates.filter(
       (pe) => !synced.some((se) => se.started_at === pe.started_at && se.stopped_at === pe.stopped_at),
@@ -110,21 +102,10 @@ export default function SessionsPage() {
     eventId: string,
     patch: { started_at: string; stopped_at: string; task_description?: string; project_id?: string },
   ) => {
-    // A still-unsynced local creation has nothing server-side to PATCH — the
-    // edit always goes straight to the queue, online or not.
-    if (isLocalEventId(eventId)) {
-      const updated = await queueEventUpdate(eventId, patch);
-      setEvents((prev) => prev.map((e) => (e.tracking_event_id === eventId ? updated : e)));
-      return;
-    }
-
-    let updated: TrackingEvent;
-    try {
-      updated = await trackingApi.update(eventId, patch);
-    } catch (err) {
-      if (err instanceof ApiError) throw err; // real rejection (e.g. overlap) — surface as today
-      updated = await queueEventUpdate(eventId, patch); // network-level failure — queue it for later sync
-    }
+    // trackingApi.update already handles the still-unsynced-local-creation
+    // short-circuit and the queue fallback on a network-level failure; a real
+    // rejection (e.g. overlap) still surfaces as today.
+    const updated = await trackingApi.update(eventId, patch);
     setEvents((prev) =>
       prev.map((e) => (e.tracking_event_id === updated.tracking_event_id ? updated : e)),
     );
@@ -133,18 +114,7 @@ export default function SessionsPage() {
   };
 
   const handleDelete = async (eventId: string) => {
-    if (isLocalEventId(eventId)) {
-      await queueEventDelete(eventId);
-      setEvents((prev) => prev.filter((e) => e.tracking_event_id !== eventId));
-      return;
-    }
-
-    try {
-      await trackingApi.delete(eventId);
-    } catch (err) {
-      if (err instanceof ApiError) throw err;
-      await queueEventDelete(eventId);
-    }
+    await trackingApi.delete(eventId);
     await refresh();
   };
 

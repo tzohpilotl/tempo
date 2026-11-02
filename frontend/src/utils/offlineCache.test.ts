@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { getCached, setCached } from './offlineCache';
+import { offlineCache } from './offlineCache';
 
 describe('offlineCache', () => {
   it('returns undefined for a key that was never cached', async () => {
-    await expect(getCached('/never-cached')).resolves.toBeUndefined();
+    await expect(offlineCache.get('/never-cached')).resolves.toBeUndefined();
   });
 
   it('round-trips a value written by the current app version', async () => {
-    await setCached('/projects', [{ project_id: '1' }]);
-    await expect(getCached('/projects')).resolves.toEqual([{ project_id: '1' }]);
+    await offlineCache.set('/projects', [{ project_id: '1' }]);
+    await expect(offlineCache.get('/projects')).resolves.toEqual([{ project_id: '1' }]);
   });
 
   it('treats a record written by a different app version as a miss', async () => {
@@ -31,6 +31,6 @@ describe('offlineCache', () => {
       tx.onerror = () => reject(tx.error);
     });
 
-    await expect(getCached('/stale-version')).resolves.toBeUndefined();
+    await expect(offlineCache.get('/stale-version')).resolves.toBeUndefined();
   });
 });

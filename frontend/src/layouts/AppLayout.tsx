@@ -3,7 +3,7 @@ import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useOnlineStatus } from '../context/onlineStatus';
 import { useIsNetworkFailing } from '../utils/networkStatus';
-import { useQueueStatus, type SyncConflict } from '../utils/offlineQueue';
+import { tracking, type SyncConflict } from '../api/client';
 import Sidebar from '../components/Sidebar';
 import type { User } from '../types';
 import styles from './AppLayout.module.css';
@@ -39,7 +39,7 @@ export default function AppLayout() {
   // exhausted cellular data. networkFailing catches those, but only after an
   // actual request has failed. Combining both gives the fastest true signal.
   const isOffline = !browserOnline || networkFailing;
-  const { pendingCount, conflict } = useQueueStatus();
+  const { pendingCount, conflict } = tracking.useQueueStatus();
   const statusMessage = getStatusMessage(isOffline, pendingCount, conflict);
 
   useEffect(() => {

@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { tracking, ApiError } from '../api/client';
+import { tracking } from '../api/client';
 import type { Project, TrackingEvent } from '../types';
 import { capitalize, formatTime } from '../utils/text';
 import { logError } from '../utils/logger';
-import { queueEventCreate } from '../utils/offlineQueue';
 import { useTimer } from '../context/timer';
 import styles from './Timer.module.css';
 
@@ -50,13 +49,10 @@ export default function Timer({ projects, onEventLogged }: Props) {
         project_id: projectId,
       };
 
-      let event: TrackingEvent;
-      try {
-        event = await tracking.log(payload);
-      } catch (err) {
-        if (err instanceof ApiError) throw err; // real rejection (e.g. overlap) — surface as today
-        event = await queueEventCreate(payload); // network-level failure — queue it for later sync
-      }
+      // A real rejection (e.g. overlap) surfaces as today; a network-level
+      // failure falls back to the offline queue instead — both handled by
+      // tracking.log itself now.
+      const event: TrackingEvent = await tracking.log(payload);
 
       onEventLogged(event);
       setSaved(true);

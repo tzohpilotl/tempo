@@ -4,8 +4,7 @@ import { ThemeProvider } from './context/theme';
 import { TimerProvider } from './context/timer';
 import { OnlineStatusProvider, useOnlineStatus } from './context/onlineStatus';
 import { useIsNetworkFailing } from './utils/networkStatus';
-import { drainQueue } from './utils/offlineQueue';
-import { request } from './api/client';
+import { tracking } from './api/client';
 import { logError } from './utils/logger';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
@@ -28,7 +27,7 @@ function QueueSync() {
   const networkFailing = useIsNetworkFailing();
 
   useEffect(() => {
-    if (online && !networkFailing) drainQueue(request).catch(logError);
+    if (online && !networkFailing) tracking.syncPendingChanges().catch(logError);
   }, [online, networkFailing]);
 
   return null;
