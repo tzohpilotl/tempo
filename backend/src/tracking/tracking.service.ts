@@ -115,6 +115,7 @@ export class TrackingService {
       stopped_at: stopped,
       task_description: dto.task_description ?? null,
       project_id: dto.project_id ?? null,
+      paused_seconds: dto.paused_seconds ?? 0,
     });
   }
 
@@ -139,6 +140,13 @@ export class TrackingService {
       throw new BadRequestException('stopped_at must be after started_at');
     }
 
+    const paused_seconds =
+      dto.paused_seconds !== undefined ? dto.paused_seconds : event.paused_seconds;
+    const spanSeconds = (stopped_at.getTime() - started_at.getTime()) / 1000;
+    if (paused_seconds > spanSeconds) {
+      throw new BadRequestException('paused_seconds cannot exceed the session duration');
+    }
+
     const project_id = dto.project_id !== undefined ? dto.project_id : event.project_id;
 
     if (project_id) {
@@ -156,6 +164,7 @@ export class TrackingService {
       task_description:
         dto.task_description !== undefined ? dto.task_description : event.task_description,
       project_id,
+      paused_seconds,
     });
   }
 

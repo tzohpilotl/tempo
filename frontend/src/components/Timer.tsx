@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function Timer({ projects, onEventLogged }: Props) {
-  const { running, elapsed, startedAt, start, stop,
+  const { running, paused, elapsed, startedAt, start, pause, resume, stop,
           taskDescription, setTaskDescription,
           selectedProjectId, setSelectedProjectId } = useTimer();
   const [saving, setSaving] = useState(false);
@@ -33,7 +33,7 @@ export default function Timer({ projects, onEventLogged }: Props) {
   const handleStop = useCallback(async () => {
     if (!startedAt) return;
     const capturedStartedAt = startedAt;
-    stop();
+    const pausedSeconds = stop();
     setSaving(true);
     setError(null);
 
@@ -47,6 +47,7 @@ export default function Timer({ projects, onEventLogged }: Props) {
         stopped_at: stoppedAt.toISOString(),
         task_description: taskDescription.trim() || undefined,
         project_id: projectId,
+        paused_seconds: pausedSeconds || undefined,
       };
 
       // A real rejection (e.g. overlap) surfaces as today; a network-level
@@ -76,7 +77,7 @@ export default function Timer({ projects, onEventLogged }: Props) {
       {/* Timer display */}
       <div className={`${styles.display} ${running ? styles.running : ''}`}>
         <span className={styles.time}>{formatTime(elapsed)}</span>
-        {running && <span className={styles.pulse} aria-hidden />}
+        {running && !paused && <span className={styles.pulse} aria-hidden />}
       </div>
 
       {/* Inputs — task and project */}
@@ -115,23 +116,38 @@ export default function Timer({ projects, onEventLogged }: Props) {
 
       {error && <p className={styles.error}>{error}</p>}
 
-      {/* Play / Stop button */}
-      <button
-        className={`${styles.playBtn} ${running ? styles.stopBtn : ''} ${saved ? styles.savedBtn : ''}`}
-        onClick={running ? handleStop : handleStart}
-        disabled={saving || saved}
-        aria-label={running ? 'Stop timer' : 'Start timer'}
-      >
-        {saving ? (
-          <Spinner />
-        ) : saved ? (
-          <CheckIcon />
-        ) : running ? (
-          <StopIcon />
-        ) : (
-          <PlayIcon />
+      <div className={styles.controls}>
+        {/* Pause / resume — only meaningful while running */}
+        {running && (
+          <button
+            className={styles.pauseBtn}
+            onClick={paused ? resume : pause}
+            disabled={saving || saved}
+            aria-label={paused ? 'Resume timer' : 'Pause timer'}
+            title={paused ? 'Resume timer' : 'Pause timer'}
+          >
+            {paused ? <ResumeIcon /> : <PauseIcon />}
+          </button>
         )}
-      </button>
+
+        {/* Play / Stop button */}
+        <button
+          className={`${styles.playBtn} ${running ? styles.stopBtn : ''} ${saved ? styles.savedBtn : ''}`}
+          onClick={running ? handleStop : handleStart}
+          disabled={saving || saved}
+          aria-label={running ? 'Stop timer' : 'Start timer'}
+        >
+          {saving ? (
+            <Spinner />
+          ) : saved ? (
+            <CheckIcon />
+          ) : running ? (
+            <StopIcon />
+          ) : (
+            <PlayIcon />
+          )}
+        </button>
+      </div>
     </div>
   );
 }
@@ -148,6 +164,23 @@ function StopIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="2"/>
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="5" y="3" width="5" height="18" rx="1"/>
+      <rect x="14" y="3" width="5" height="18" rx="1"/>
+    </svg>
+  );
+}
+
+function ResumeIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <polygon points="5 3 19 12 5 21 5 3"/>
     </svg>
   );
 }

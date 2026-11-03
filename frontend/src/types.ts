@@ -17,6 +17,7 @@ export interface TrackingEvent {
   started_at: string;
   stopped_at: string;
   duration_seconds: number;
+  paused_seconds: number;
   task_description: string | null;
   project: { project_id: string; name: string } | null;
 }

@@ -25,6 +25,11 @@ export class TrackingEvent {
   @Column({ nullable: true })
   project_id: string | null;
 
+  /** Accumulated time the session was paused, in seconds — subtracted from the raw
+   *  started_at/stopped_at interval everywhere duration is computed. */
+  @Column({ type: 'int', default: 0 })
+  paused_seconds: number;
+
   @CreateDateColumn()
   created_at: Date;
 

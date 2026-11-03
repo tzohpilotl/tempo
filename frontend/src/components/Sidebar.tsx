@@ -110,26 +110,28 @@ export default function Sidebar({ user }: Props) {
             <span className={styles.userEmail}>{user.email}</span>
           </div>
         </div>
-        <button className={styles.themeBtn} onClick={toggleTheme} title={themeTitle}>
-          {themeIcon}
-        </button>
-        {pushSupported && (
-          <button
-            className={styles.themeBtn}
-            onClick={togglePush}
-            disabled={pushLoading}
-            title={pushTitle}
-          >
-            {pushSubscribed ? <BellIcon /> : <BellOffIcon />}
+        <div className={styles.footerActions}>
+          <button className={styles.themeBtn} onClick={toggleTheme} title={themeTitle}>
+            {themeIcon}
           </button>
-        )}
-        <button
-          className={styles.logoutBtn}
-          onClick={handleLogout}
-          title="Sign out"
-        >
-          <LogoutIcon />
-        </button>
+          {pushSupported && (
+            <button
+              className={styles.themeBtn}
+              onClick={togglePush}
+              disabled={pushLoading}
+              title={pushTitle}
+            >
+              {pushSubscribed ? <BellIcon /> : <BellOffIcon />}
+            </button>
+          )}
+          <button
+            className={styles.logoutBtn}
+            onClick={handleLogout}
+            title="Sign out"
+          >
+            <LogoutIcon />
+          </button>
+        </div>
       </div>
       <div className={styles.version}>v{__APP_VERSION__}</div>
     </aside>

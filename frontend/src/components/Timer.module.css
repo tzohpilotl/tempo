@@ -86,6 +86,42 @@
   text-align: center;
 }
 
+/* ── Controls row — pause/resume alongside play/stop ── */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pauseBtn {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 1px var(--border);
+  transition: color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.pauseBtn:hover {
+  color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.pauseBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pauseBtn:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 4px;
+}
+
 /* ── Play / Stop button ── */
 
 .playBtn {
@@ -97,19 +133,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.2s var(--ease);
+  transition: box-shadow 0.15s var(--ease), background 0.2s var(--ease);
   box-shadow: 0 4px 20px var(--accent-glow);
 }
 
 .playBtn:hover {
-  transform: scale(1.06);
   box-shadow: 0 6px 28px var(--accent-glow);
 }
 
 .playBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
 .playBtn:focus-visible {
@@ -166,11 +200,11 @@
     padding-bottom: max(2rem, env(safe-area-inset-bottom));
   }
 
-  /* Reorder: inputs → clock → button */
-  .inputs  { order: 1; width: 100%; }
-  .display { order: 2; flex-shrink: 0; }
-  .error   { order: 3; }
-  .playBtn { order: 4; }
+  /* Reorder: inputs → clock → controls */
+  .inputs   { order: 1; width: 100%; }
+  .display  { order: 2; flex-shrink: 0; }
+  .error    { order: 3; }
+  .controls { order: 4; }
 
   .inputs {
     display: flex;
@@ -226,7 +260,8 @@
     font-size: clamp(4.5rem, 22vw, 7rem);
   }
 
-  .playBtn {
+  .playBtn,
+  .pauseBtn {
     width: 80px;
     height: 80px;
   }

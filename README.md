@@ -175,6 +175,12 @@ cd frontend && npm run dev
 Open [http://localhost:5173](http://localhost:5173).
 
 > **Note on SQLite:** `better-sqlite3` requires native compilation. Running `npm install` inside Docker works automatically (build tools are installed in the Dockerfile). For local development on macOS or Windows, prebuilt binaries are available for common platforms and should install without issues.
+>
+> If the backend fails to start with `NODE_MODULE_VERSION` mismatch or `Module did not self-register` (typically after switching/upgrading your local Node version), `better-sqlite3`'s native binding was compiled against a different Node ABI than the one now running it. Fix by rebuilding it against the current Node version:
+>
+> ```bash
+> cd backend && npm rebuild better-sqlite3
+> ```
 
 ---
 

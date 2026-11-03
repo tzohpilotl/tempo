@@ -1,6 +1,7 @@
 import { useEffect, Suspense } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useTimer } from '../context/timer';
 import { useOnlineStatus } from '../context/onlineStatus';
 import { useIsNetworkFailing } from '../utils/networkStatus';
 import { tracking, type SyncConflict } from '../api/client';
@@ -31,6 +32,7 @@ function getStatusMessage(
 
 export default function AppLayout() {
   const { user, loading: authLoading, unauthenticated, error } = useAuth();
+  const { paused } = useTimer();
   const navigate = useNavigate();
   const browserOnline = useOnlineStatus();
   const networkFailing = useIsNetworkFailing();
@@ -63,6 +65,7 @@ export default function AppLayout() {
     <div className={styles.root}>
       <Sidebar user={user} />
       <div className={styles.content}>
+        {paused && <div className={styles.pausedBanner}>Timer paused</div>}
         {statusMessage && (
           <div className={`${styles.offlineBanner} ${conflict ? styles.offlineBannerError : ''}`}>
             {statusMessage}

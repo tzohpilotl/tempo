@@ -11,6 +11,18 @@
   min-height: 0;
 }
 
+.pausedBanner {
+  flex-shrink: 0;
+  padding: 0.4rem 1rem;
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
 .offlineBanner {
   flex-shrink: 0;
   padding: 0.5rem 1rem;

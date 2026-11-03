@@ -94,7 +94,7 @@ export class TrackingEventRepository implements ITrackingEventRepository {
     }>
   > {
     const durationExpr =
-      '(julianday(event.stopped_at) - julianday(event.started_at)) * 86400';
+      '((julianday(event.stopped_at) - julianday(event.started_at)) * 86400 - event.paused_seconds)';
     const inRangeSum = (from: string, to: string) =>
       `CAST(SUM(CASE WHEN event.started_at < :${to} AND event.stopped_at > :${from} THEN ${durationExpr} ELSE 0 END) AS INTEGER)`;
 
@@ -157,12 +157,14 @@ export class TrackingEventRepository implements ITrackingEventRepository {
     stopped_at: Date;
     task_description?: string | null;
     project_id?: string | null;
+    paused_seconds?: number;
   }): Promise<TrackingEvent> {
     const event = this.orm.create({
       started_at: data.started_at,
       stopped_at: data.stopped_at,
       task_description: data.task_description ?? null,
       project_id: data.project_id ?? null,
+      paused_seconds: data.paused_seconds ?? 0,
     });
     const saved = await this.orm.save(event);
     return this.orm.findOneOrFail({
@@ -178,6 +180,7 @@ export class TrackingEventRepository implements ITrackingEventRepository {
       stopped_at: Date;
       task_description: string | null;
       project_id: string | null;
+      paused_seconds: number;
     },
   ): Promise<TrackingEvent> {
     await this.orm.update({ tracking_event_id: eventId }, data);

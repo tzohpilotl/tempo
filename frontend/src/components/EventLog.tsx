@@ -246,6 +246,14 @@ export default function EventLog({
                       <span className={styles.metaDot}>·</span>
                     </>
                   )}
+                  {event.paused_seconds > 0 && (
+                    <>
+                      <span className={styles.pendingBadge} title="Time spent paused is excluded from the duration shown">
+                        Paused {formatDuration(event.paused_seconds)}
+                      </span>
+                      <span className={styles.metaDot}>·</span>
+                    </>
+                  )}
                   <span className={styles.metaDate}>
                     {detailed
                       ? formatDateRange(event.started_at, event.stopped_at)

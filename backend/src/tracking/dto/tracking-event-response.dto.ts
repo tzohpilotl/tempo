@@ -10,6 +10,7 @@ export interface TrackingEventResponse {
   started_at: string;
   stopped_at: string;
   duration_seconds: number;
+  paused_seconds: number;
   task_description: string | null;
   project: ProjectSummary | null;
 }
@@ -54,7 +55,8 @@ export function toTrackingEventResponse(
     tracking_event_id: event.tracking_event_id,
     started_at: event.started_at.toISOString(),
     stopped_at: event.stopped_at.toISOString(),
-    duration_seconds: Math.round(durationMs / 1000),
+    duration_seconds: Math.round(durationMs / 1000) - event.paused_seconds,
+    paused_seconds: event.paused_seconds,
     task_description: event.task_description,
     project: event.project
       ? { project_id: event.project.project_id, name: event.project.name }

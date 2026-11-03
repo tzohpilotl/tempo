@@ -22,6 +22,7 @@ const syncedEvent = (overrides: Partial<TrackingEvent> = {}): TrackingEvent => (
   started_at: '2026-01-02T10:00:00.000Z',
   stopped_at: '2026-01-02T10:15:00.000Z',
   duration_seconds: 900,
+  paused_seconds: 0,
   task_description: 'Original',
   project: null,
   ...overrides,

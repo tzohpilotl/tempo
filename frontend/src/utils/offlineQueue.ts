@@ -16,6 +16,7 @@ export interface QueuedEventPayload {
   stopped_at: string;
   task_description?: string;
   project_id?: string;
+  paused_seconds?: number;
 }
 
 /**
@@ -150,7 +151,7 @@ export class OfflineQueue {
 
   private toDuration(payload: QueuedEventPayload): number {
     const ms = new Date(payload.stopped_at).getTime() - new Date(payload.started_at).getTime();
-    return Math.round(ms / 1000);
+    return Math.round(ms / 1000) - (payload.paused_seconds ?? 0);
   }
 
   /** Best-effort optimistic event for display — the project name comes from the response cache, not a network call. */
@@ -161,6 +162,7 @@ export class OfflineQueue {
       started_at: entry.payload.started_at,
       stopped_at: entry.payload.stopped_at,
       duration_seconds: this.toDuration(entry.payload),
+      paused_seconds: entry.payload.paused_seconds ?? 0,
       task_description: entry.payload.task_description ?? null,
       project: await this.resolveProject(entry.payload.project_id),
     };
@@ -332,6 +334,7 @@ export class OfflineQueue {
           started_at: patch.started_at,
           stopped_at: patch.stopped_at,
           duration_seconds: this.toDuration(patch),
+          paused_seconds: patch.paused_seconds ?? 0,
           task_description: patch.task_description ?? null,
           project: project ? { project_id: project.project_id, name: project.name } : null,
         };
