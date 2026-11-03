@@ -41,6 +41,7 @@ The application offers the following features for free:
 ** DONE Stopwatch behavior to count elapsed time
 ** DONE Ability to edit and delete sessions and projects
 ** DONE Today, this week, this month and all time metrics
+Hardened by [[*Optimize summary aggregation query performance][Optimize summary aggregation query performance]].
 ** DONE Secure user accounts (sign up, login, session management)
 Hardened by [[*Extend login session duration / reduce forced re-logins][Extend login session duration / reduce forced re-logins]] and [[*Harden auth/session security][Harden auth/session
 security]].
@@ -75,6 +76,16 @@ Delivered by [[*Integrate pomodoro functionality][Integrate pomodoro functionali
 
 ** TODO End-of-session reflection notes                               :maybe:
 Delivered by [[*Use a note for reflection at the end of the session][Use a note for reflection at the end of the session]].
+
+** TODO Export tracking data (CSV / printable overview)
+Delivered by [[*Export tracking data][Export tracking data]].
+
+** TODO Pause and resume an active session
+Delivered by [[*Pause/resume tracking sessions][Pause/resume tracking sessions]]. Hardened by [[*Sync in-progress session across
+devices][Sync in-progress session across devices]].
+
+** TODO Sync in-progress session across devices                      :maybe:
+Delivered by [[*Sync in-progress session across devices][Sync in-progress session across devices]].
 
 
 * Roadmap
@@ -135,6 +146,173 @@ against an orphaned =user_id=, no defined =onDelete= behavior if a user row is e
 way to eager-load the owning user via =relations: ['user']=. Doing this under =synchronize: true=
 today would apply silently with no review step — exactly the kind of change this migration system
 is meant to require a reviewed, versioned file for instead.
+
+** TODO Optimize summary aggregation query performance
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+Hardens [[*Today, this week, this month and all time metrics][Today, this week, this month and all time metrics]].
+=getSummaryByProject= ([[file:backend/src/database/repositories/tracking-event.repository.ts][tracking-event.repository.ts]]) recomputes day/week/month/all-time
+totals per project from the full =tracking_events= table on every read, which gets more expensive as
+history grows. Replace it with a maintained summary (keyed by user/project), updated incrementally
+instead of rescanned from scratch each time, and held in a cache rather than a persisted DB table.
+
+*** TODO Phase 1 — Bounded window recalculation
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+Index =tracking_events.started_at=. Store one running summary per (user, project): =total_seconds=
+plus cached =day_seconds=/=week_seconds=/=month_seconds= and a =last_calculated_at= watermark.
+- Create: always add the new event's duration straight onto =total_seconds= (all-time has no
+  boundary to cross, so this is a pure increment). For day/week/month, check the watermark: same
+  window → add on top; boundary crossed → recompute that one window with a bounded, indexed range
+  query against =tracking_events= (=started_at BETWEEN window_start AND window_end=) and advance the
+  watermark.
+- Update/delete: apply the duration delta (old out, new in) to =total_seconds= unconditionally. Apply
+  the same delta to day/week/month only if the event's =started_at= falls inside the window currently
+  represented by the cached number; otherwise it's already excluded and nothing changes.
+- Run the same boundary check on the read path too, not only on write, so a summary doesn't go stale
+  just because the user hasn't logged a new event.
+
+Rejected: a per-day bucket table summed at read time — unnecessary once boundary recalcs are scoped
+to one bounded, indexed window of raw events instead of a full-history scan; it would also mean a
+third thing (event + bucket row + summary) to keep in sync on every update/delete. Rejected: a
+fixed-size "subtract oldest, add newest" rolling window — the window boundaries here are time-based,
+not count-based, so an event can age out of today's window with no new write to trigger the eviction,
+and arbitrary =update=/=delete= of a non-edge event breaks the subtract/add invariant outright.
+
+*** TODO Phase 2 — Cache-backed summary store
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+Hold the Phase 1 summary (=total_seconds=, day/week/month, =last_calculated_at=) in a cache rather
+than a DB table, since it's fully derivable from =tracking_events= and doesn't need durability of its
+own. No cache backend exists in the project yet, so this is new infrastructure, not reuse of the
+frontend API client's cache from [[*Make the API client's cache and offline queue injectable
+dependencies][Make the API client's cache and offline queue injectable dependencies]] (that one lives
+in the browser and caches a different thing).
+
+Open question to resolve before implementing: in-memory (simplest, but each backend instance would
+have its own view, which breaks if this app ever runs as more than one instance) vs. a shared cache
+like Redis (correct under scaling, at the cost of a new dependency/service to run). Either way, a
+cache miss (eviction, TTL, restart, or cold entry) must be handled as a rebuild, not an error: re-run
+the Phase 1 bounded queries for all four windows to repopulate the entry on demand.
+
+** TODO Export tracking data
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+Delivers [[*Export tracking data (CSV / printable overview)][Export tracking data (CSV / printable overview)]]. Let a user export their own tracking
+events — as a downloadable CSV, or as a printable overview reusing [[file:frontend/src/pages/SessionsPage.tsx][SessionsPage.tsx]]'s existing
+summary/event-log layout (=PieChart=, =EventLog=) rather than a new view built from scratch.
+
+Both phases need user-facing controls to shape and limit what's exported — at minimum a date range
+and project filter (mirroring =findPaginated='s existing filters), rather than always exporting the
+caller's entire history. Needs its own UI design pass; not yet broken down into a phase.
+
+*** TODO Phase 1 — CSV export
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+Backend endpoint streaming the caller's =tracking_events= (optionally filtered by project and/or
+date range, mirroring =findPaginated='s filters) as CSV — one row per session, with project name
+joined in rather than a raw =project_id=. Reuse the existing ownership-scoped query shape from
+[[file:backend/src/database/repositories/tracking-event.repository.ts][tracking-event.repository.ts]] rather than introducing a parallel unscoped query.
+
+*** TODO Phase 2 — Printable overview
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+A print-friendly view/stylesheet built on the same data =SessionsPage= already renders — the
+day/week/month/all-time pie charts plus the event log for the selected range/project — rather than a
+separate export-only template. A browser print (=Ctrl+P= to PDF) is the target output; no new PDF
+generation dependency.
+
+** TODO Pause/resume tracking sessions
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+Delivers [[*Pause and resume an active session][Pause and resume an active session]]. Let a user pause a running session to step away and
+resume it later, without the paused gap counting as tracked time.
+
+Core design tension: [[file:backend/src/database/entities/tracking-event.entity.ts][tracking-event.entity.ts]] models a session as one continuous
+=started_at=/=stopped_at= interval. A pause introduces a gap that must not count toward duration,
+which a single interval can't represent on its own. No concurrent tracking (switching to a different
+task/project while paused) is planned, so a session stays one row: add =paused_seconds= (accumulated
+total, defaults to 0) to =tracking_events=. Active duration becomes =(stopped_at - started_at -
+paused_seconds)= instead of the raw interval, and that subtraction needs to land everywhere duration
+is computed: the summary query's =durationExpr= in [[file:backend/src/database/repositories/tracking-event.repository.ts][tracking-event.repository.ts]] (part of
+[[*Optimize summary aggregation query performance][Optimize summary aggregation query performance]]
+now, too — its bounded-window recalcs must subtract =paused_seconds= the same way), CSV export, the
+printable overview, and =EventLog='s display.
+
+Rejected: splitting a paused session into multiple grouped events (segments) — would avoid touching
+duration math but needs a grouping column and multi-row/expandable UI; not worth it once concurrent
+tracking during a pause is off the table. Rejected: a persisted =paused_at= with dedicated backend
+=pause=/=resume= endpoints mutating an in-progress row — doesn't fit how sessions are logged today.
+=start= has no backend call at all; per [[file:frontend/src/context/timer.tsx][context/timer.tsx]] and [[file:frontend/src/components/Timer.tsx][Timer.tsx]], a running timer is purely
+client state (React state + =localStorage=, restored across refresh/navigation), and the backend
+only learns about a session once, atomically, when =handleStop= calls =tracking.log()= with both
+=started_at= and =stopped_at= already known. A persisted =paused_at= would introduce a server-side
+row that can dangle forever if the client never comes back to resume it (tab closed, app abandoned)
+— a cleanup problem with no good answer (timeout-based auto-resume? surface it on next app open?)
+that's better avoided than solved. Pause should mirror how start already works: stay entirely
+client-side, and only hand the backend the final =paused_seconds= total in the existing =create=
+call. The tradeoff — pausing on one device and resuming on another won't sync — is already true of
+a running timer today, so this isn't a new limitation.
+
+*** TODO Phase 1 — Backend: accept and validate paused_seconds
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+Add =paused_seconds= (integer, defaults to 0) to =tracking_events= and to
+[[file:backend/src/tracking/dto/create-tracking-event.dto.ts][create-tracking-event.dto.ts]]/=update-tracking-event.dto.ts=, accepted from the client the same way
+=started_at=/=stopped_at= already are. Validate:
+
+- *Coherence*: =0 ≤ paused_seconds ≤ (stopped_at - started_at)=. Paused time can't exceed the
+  session's own total span.
+- *No negative values*: reject =paused_seconds < 0= outright — that's the one exploit worth
+  blocking, since a negative value would increase active duration beyond the raw interval, inflating
+  reported worked time. A client reporting an unusually long pause only shrinks its own active time,
+  which isn't a gain for them, so there's no need to scrutinize pause length beyond the upper bound
+  above.
+
+Update every duration computation (summary, CSV, printable overview) to subtract =paused_seconds=.
+
+*** TODO Phase 2 — Frontend: pause/resume controls
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+Extend [[file:frontend/src/context/timer.tsx][context/timer.tsx]]'s local/=localStorage=-backed state (same mechanism that already restores
+=startedAt= across refresh) with accumulated =pausedSeconds= and a =pausedSince= timestamp while
+currently paused, so the displayed elapsed time excludes paused time live. Pause/resume buttons
+alongside start/stop in =Timer.tsx=, purely local — no backend call until =handleStop= sends the
+final =paused_seconds= total alongside =started_at=/=stopped_at=, same request as today. =EventLog=
+needs no structural change — a session is still one row — just surface that it was paused (e.g. a
+badge/icon) and show the net duration, same as every other duration display.
+
+** TODO Sync in-progress session across devices                      :maybe:
+:PROPERTIES:
+:CREATED: [2026-11-02 Mon]
+:END:
+Delivers [[*Sync in-progress session across devices][Sync in-progress session across devices]]. Hardens [[*Pause and resume an active session][Pause and resume an active session]].
+[[*Pause/resume tracking sessions][Pause/resume tracking sessions]] deliberately kept the running timer and its pause state client-only
+(=context/timer.tsx=, =localStorage=), matching how =start= already worked — the backend only learns
+of a session once, atomically, on =stop=. That means a session started on one device (paused or not)
+is invisible to any other device until it's stopped: logging in elsewhere shows no running timer, no
+elapsed time, nothing to resume.
+
+Multi-device accounts are already allowed today (nothing stops a second login), and the existing
+=assertNoOverlap=/=findOverlapping= check already enforces "no multitasking" at the one point that
+matters — a =stop= on either device that would overlap an already-*persisted* interval gets
+rejected. So this isn't about allowing or blocking concurrency; it's purely about whether an
+*in-progress* (unsaved) session is visible across devices. Doing that for real means walking back
+the "start has no backend call" design: an open session (and its pause state) would need to be
+persisted from the moment it starts, not just at stop — which reopens the "dangling paused/running
+row if the client never comes back" problem that [[*Pause/resume tracking sessions][Pause/resume tracking sessions]] sidestepped
+by staying client-only. Worth a real design pass (including a staleness/cleanup policy for abandoned
+open sessions) only if cross-device continuity turns out to matter in practice — marked =:maybe:=
+and left unscoped until then.
 
 ** TODO Use tags to group sessions from different projects
 :PROPERTIES:
