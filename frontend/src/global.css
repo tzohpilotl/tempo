@@ -1,11 +1,13 @@
 /*
  * Design tokens, base element styles, and the reusable component layer now
- * live in ../../theme (tokens.css/components.css) — a framework-agnostic
- * package meant to be reused outside this app too. Only Tempo-specific
+ * live in ../theme (tokens.css/components.css) — a framework-agnostic
+ * package meant to be reused outside this app too (lives under frontend/
+ * rather than at the repo root so it's covered by the frontend Docker build
+ * context, same as everything else under here). Only Tempo-specific
  * additions stay here, layered on top.
  */
-@import '../../theme/tokens.css';
-@import '../../theme/components.css';
+@import '../theme/tokens.css';
+@import '../theme/components.css';
 
 :root {
   --sidebar-w: 220px;
