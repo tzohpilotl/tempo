@@ -80,7 +80,10 @@ Delivered by [[*Use a note for reflection at the end of the session][Use a note 
 ** TODO Export tracking data (CSV / printable overview)
 Delivered by [[*Export tracking data][Export tracking data]].
 
-** TODO Pause and resume an active session
+** DONE Pause and resume an active session
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-11-03 Tue 17:40]
+:END:
 Delivered by [[*Pause/resume tracking sessions][Pause/resume tracking sessions]]. Hardened by [[*Sync in-progress session across
 devices][Sync in-progress session across devices]].
 
@@ -228,9 +231,12 @@ day/week/month/all-time pie charts plus the event log for the selected range/pro
 separate export-only template. A browser print (=Ctrl+P= to PDF) is the target output; no new PDF
 generation dependency.
 
-** TODO Pause/resume tracking sessions
+** DONE Pause/resume tracking sessions
 :PROPERTIES:
 :CREATED: [2026-11-02 Mon]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-11-03 Tue 17:41]
 :END:
 Delivers [[*Pause and resume an active session][Pause and resume an active session]]. Let a user pause a running session to step away and
 resume it later, without the paused gap counting as tracked time.
@@ -261,9 +267,12 @@ client-side, and only hand the backend the final =paused_seconds= total in the e
 call. The tradeoff — pausing on one device and resuming on another won't sync — is already true of
 a running timer today, so this isn't a new limitation.
 
-*** TODO Phase 1 — Backend: accept and validate paused_seconds
+*** DONE Phase 1 — Backend: accept and validate paused_seconds
 :PROPERTIES:
 :CREATED: [2026-11-02 Mon]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-11-03 Tue 17:41]
 :END:
 Add =paused_seconds= (integer, defaults to 0) to =tracking_events= and to
 [[file:backend/src/tracking/dto/create-tracking-event.dto.ts][create-tracking-event.dto.ts]]/=update-tracking-event.dto.ts=, accepted from the client the same way
@@ -279,9 +288,12 @@ Add =paused_seconds= (integer, defaults to 0) to =tracking_events= and to
 
 Update every duration computation (summary, CSV, printable overview) to subtract =paused_seconds=.
 
-*** TODO Phase 2 — Frontend: pause/resume controls
+*** DONE Phase 2 — Frontend: pause/resume controls
 :PROPERTIES:
 :CREATED: [2026-11-02 Mon]
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-11-03 Tue 17:41]
 :END:
 Extend [[file:frontend/src/context/timer.tsx][context/timer.tsx]]'s local/=localStorage=-backed state (same mechanism that already restores
 =startedAt= across refresh) with accumulated =pausedSeconds= and a =pausedSince= timestamp while

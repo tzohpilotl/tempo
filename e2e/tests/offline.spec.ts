@@ -97,7 +97,7 @@ test('editing a session queues the edit while offline and syncs it once reachabl
   await page.route('**/api/**', (route) => route.abort('internetdisconnected'));
 
   const item = page.getByTestId('session-item').filter({ hasText: 'Phase 3 edit target' });
-  await item.getByRole('button', { name: 'Edit session' }).click();
+  await item.click();
   await page.getByPlaceholder('Task description').fill('Phase 3 edited offline');
   await page.getByRole('button', { name: 'Save' }).click();
 
@@ -136,9 +136,10 @@ test('deleting a session queues the delete while offline and it stays gone after
 
   await page.route('**/api/**', (route) => route.abort('internetdisconnected'));
 
-  page.once('dialog', (dialog) => dialog.accept());
   const item = page.getByTestId('session-item').filter({ hasText: 'Phase 3 delete target' });
-  await item.getByRole('button', { name: 'Delete session' }).click();
+  await item.click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Delete' }).click();
 
   // Optimistic UI: gone immediately even though the DELETE never reached the server.
   await expect(page.getByText('Phase 3 delete target')).not.toBeVisible({ timeout: 5000 });
@@ -167,7 +168,7 @@ test('editing a session that is itself still an unsynced offline creation update
 
   // Edit it while its creation is still only queued (never reached the server).
   const item = page.getByTestId('session-item').filter({ hasText: 'Still queued session' });
-  await item.getByRole('button', { name: 'Edit session' }).click();
+  await item.click();
   await page.getByPlaceholder('Task description').fill('Still queued, now edited');
   await page.getByRole('button', { name: 'Save' }).click();
 

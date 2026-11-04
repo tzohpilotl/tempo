@@ -122,7 +122,18 @@ export default function EventLog({
 
   const handleDelete = async (eventId: string) => {
     if (!confirm('Delete this session? This cannot be undone.')) return;
-    await onDelete(eventId);
+    setSaving(true);
+    setError(null);
+    try {
+      await onDelete(eventId);
+      setEditingId(null);
+      setForm(null);
+    } catch (err) {
+      logError(err);
+      setError(err instanceof Error ? err.message : 'Failed to delete session');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -144,151 +155,152 @@ export default function EventLog({
   }
 
   return (
-    <div className={styles.root}>
-      <h2 className={styles.heading}>Sessions</h2>
-      <ul className={styles.list}>
-        {events.map((event, i) => {
-          const isEditing = editingId === event.tracking_event_id;
+      <div className={styles.root}>
+          <h2 className={styles.heading}>Sessions</h2>
+          <ul className={styles.list}>
+              {events.map((event, i) => {
+                  const isEditing = editingId === event.tracking_event_id;
 
-          if (isEditing && form) {
-            return (
-              <li
-                key={event.tracking_event_id}
-                className={`${styles.item} ${styles.itemEditing}`}
-                data-testid="session-item"
-              >
-                <form
-                  className={styles.editForm}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    saveEdit(event.tracking_event_id);
-                  }}
-                >
-                  <input
-                    className={styles.editInput}
-                    type="text"
-                    placeholder="Task description"
-                    value={form.task_description}
-                    onChange={(e) => setForm({ ...form, task_description: e.target.value })}
-                  />
+                  if (isEditing && form) {
+                      return (
+                          <li
+                              key={event.tracking_event_id}
+                              className={`${styles.item} ${styles.itemEditing}`}
+                              data-testid="session-item"
+                          >
+                              <form
+                                  className={styles.editForm}
+                                  onSubmit={(e) => {
+                                      e.preventDefault();
+                                      saveEdit(event.tracking_event_id);
+                                  }}
+                              >
+                                  <input
+                                      className={styles.editInput}
+                                      type="text"
+                                      placeholder="Task description"
+                                      value={form.task_description}
+                                      onChange={(e) => setForm({ ...form, task_description: e.target.value })}
+                                  />
 
-                  <select
-                    className={styles.editInput}
-                    value={form.project_id}
-                    onChange={(e) => setForm({ ...form, project_id: e.target.value })}
-                  >
-                    <option value="">No project</option>
-                    {projects.map((p) => (
-                      <option key={p.project_id} value={p.project_id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                                  <select
+                                      className={styles.editInput}
+                                      value={form.project_id}
+                                      onChange={(e) => setForm({ ...form, project_id: e.target.value })}
+                                  >
+                                      <option value="">No project</option>
+                                      {projects.map((p) => (
+                                          <option key={p.project_id} value={p.project_id}>
+                                              {p.name}
+                                          </option>
+                                      ))}
+                                  </select>
 
-                  <div className={styles.editRow}>
-                    <input
-                      className={styles.editInput}
-                      type="datetime-local"
-                      step="1"
-                      value={form.started_at}
-                      onChange={(e) => setForm({ ...form, started_at: e.target.value })}
-                      required
-                    />
-                    <span className={styles.editArrow}>→</span>
-                    <input
-                      className={styles.editInput}
-                      type="datetime-local"
-                      step="1"
-                      value={form.stopped_at}
-                      onChange={(e) => setForm({ ...form, stopped_at: e.target.value })}
-                      required
-                    />
-                  </div>
+                                  <div className={styles.editRow}>
+                                      <input
+                                          className={styles.editInput}
+                                          type="datetime-local"
+                                          step="1"
+                                          value={form.started_at}
+                                          onChange={(e) => setForm({ ...form, started_at: e.target.value })}
+                                          required
+                                      />
+                                      <span className={styles.editArrow}>→</span>
+                                      <input
+                                          className={styles.editInput}
+                                          type="datetime-local"
+                                          step="1"
+                                          value={form.stopped_at}
+                                          onChange={(e) => setForm({ ...form, stopped_at: e.target.value })}
+                                          required
+                                      />
+                                  </div>
 
-                  {error && <p className={styles.editError}>{error}</p>}
+                                  {error && <p className={styles.editError}>{error}</p>}
 
-                  <div className={styles.editActions}>
-                    <button type="button" className={styles.cancelBtn} onClick={cancelEdit} disabled={saving}>
-                      Cancel
-                    </button>
-                    <button type="submit" className={styles.saveBtn} disabled={saving}>
-                      {saving ? 'Saving…' : 'Save'}
-                    </button>
-                  </div>
-                </form>
-              </li>
-            );
-          }
+                                  <div className={styles.editActions}>
+                                      <button
+                                          type="button"
+                                          className={styles.deleteBtn}
+                                          onClick={() => handleDelete(event.tracking_event_id)}
+                                          disabled={saving}
+                                      >
+                                          Delete
+                                      </button>
+                                      <div className={styles.editActionsRight}>
+                                          <button type="button" className={styles.cancelBtn} onClick={cancelEdit} disabled={saving}>
+                                              Cancel
+                                          </button>
+                                          <button type="submit" className={styles.saveBtn} disabled={saving}>
+                                              {saving ? 'Saving…' : 'Save'}
+                                          </button>
+                                      </div>
+                                  </div>
+                              </form>
+                          </li>
+                      );
+                  }
 
-          return (
-            <li
-              key={event.tracking_event_id}
-              className={styles.item}
-              style={{ animationDelay: `${i * 40}ms` }}
-              data-testid="session-item"
-            >
-              <div className={styles.itemLeft}>
-                {event.task_description ? (
-                  <span className={styles.taskDesc}>{capitalize(event.task_description)}</span>
-                ) : (
-                  <span className={styles.taskDescEmpty}>Untitled session</span>
-                )}
-                <div className={styles.meta}>
-                  {pendingIds?.has(event.tracking_event_id) && (
-                    <>
-                      <span className={styles.pendingBadge}>Not synced</span>
-                      <span className={styles.metaDot}>·</span>
-                    </>
-                  )}
-                  {event.project && (
-                    <>
-                      <span className={styles.projectTag}>{capitalize(event.project.name)}</span>
-                      <span className={styles.metaDot}>·</span>
-                    </>
-                  )}
-                  {event.paused_seconds > 0 && (
-                    <>
-                      <span className={styles.pendingBadge} title="Time spent paused is excluded from the duration shown">
-                        Paused {formatDuration(event.paused_seconds)}
-                      </span>
-                      <span className={styles.metaDot}>·</span>
-                    </>
-                  )}
-                  <span className={styles.metaDate}>
-                    {detailed
-                      ? formatDateRange(event.started_at, event.stopped_at)
-                      : formatDate(event.started_at)}
-                  </span>
-                </div>
-              </div>
+                  return (
+                      <li
+                          key={event.tracking_event_id}
+                          className={styles.item}
+                          style={{ animationDelay: `${i * 40}ms` }}
+                          data-testid="session-item"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => startEdit(event)}
+                          onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  startEdit(event);
+                              }
+                          }}
+                      >
+                          <div className={styles.itemLeft}>
+                              {event.task_description ? (
+                                  <span className={styles.taskDesc}>{capitalize(event.task_description)}</span>
+                              ) : (
+                                  <span className={styles.taskDescEmpty}>Untitled session</span>
+                              )}
+                              <div className={styles.meta}>
+                                  {pendingIds?.has(event.tracking_event_id) && (
+                                      <>
+                                          <span className={styles.pendingBadge}>Not synced</span>
+                                          <span className={styles.metaDot}>·</span>
+                                      </>
+                                  )}
+                                  {event.project && (
+                                      <>
+                                          <span className={styles.projectTag}>{capitalize(event.project.name)}</span>
+                                          <span className={styles.metaDot}>·</span>
+                                      </>
+                                  )}
+                                  {event.paused_seconds > 0 && (
+                                      <>
+                                          <span className={styles.pendingBadge} title="Time spent paused is excluded from the duration shown">
+                                              Paused {formatDuration(event.paused_seconds)}
+                                          </span>
+                                          <span className={styles.metaDot}>·</span>
+                                      </>
+                                  )}
+                                  <span className={styles.metaDate}>
+                                      {detailed
+                                      ? formatDateRange(event.started_at, event.stopped_at)
+                                      : formatDate(event.started_at)}
+                                  </span>
+                              </div>
+                          </div>
 
-              <div className={styles.itemRight}>
-                <span className={styles.duration}>
-                  {formatDuration(event.duration_seconds)}
-                </span>
-                <div className={styles.itemActions}>
-                  <button
-                    className={styles.iconBtn}
-                    onClick={() => startEdit(event)}
-                    aria-label="Edit session"
-                    title="Edit session"
-                  >
-                    ✎
-                  </button>
-                  <button
-                    className={styles.iconBtn}
-                    onClick={() => handleDelete(event.tracking_event_id)}
-                    aria-label="Delete session"
-                    title="Delete session"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+                          <div className={styles.itemRight}>
+                              <span className={styles.duration}>
+                                  {formatDuration(event.duration_seconds)}
+                              </span>
+                          </div>
+                      </li>
+                  );
+              })}
+          </ul>
+      </div>
   );
 }

@@ -59,7 +59,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className={styles.main}>
+    <div className={styles.page}>
       <section className={styles.timerSection}>
         <Timer
           projects={projects}
@@ -79,6 +79,6 @@ export default function DashboardPage() {
           pendingIds={pendingIds}
         />
       </section>
-    </main>
+    </div>
   );
 }

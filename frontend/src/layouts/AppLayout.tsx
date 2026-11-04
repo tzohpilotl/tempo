@@ -71,9 +71,11 @@ export default function AppLayout() {
             {statusMessage}
           </div>
         )}
-        <Suspense fallback={null}>
-          <Outlet context={user satisfies AppLayoutContext} />
-        </Suspense>
+        <main className={styles.main}>
+          <Suspense fallback={null}>
+            <Outlet context={user satisfies AppLayoutContext} />
+          </Suspense>
+        </main>
       </div>
     </div>
   );

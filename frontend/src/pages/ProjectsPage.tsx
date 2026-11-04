@@ -96,7 +96,7 @@ export default function ProjectsPage() {
 
   return (
     <>
-    <main className={styles.main}>
+    <div className={styles.page}>
         <header className={styles.header}>
           <h1 className={styles.title}>Projects</h1>
           <span className={styles.count}>{stats.length} project{stats.length !== 1 ? 's' : ''}</span>
@@ -193,7 +193,7 @@ export default function ProjectsPage() {
             ))}
           </ul>
         )}
-      </main>
+      </div>
 
       {/* Delete confirmation dialog */}
       {deletingId && (() => {

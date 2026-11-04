@@ -1,14 +1,7 @@
-.root {
-  display: flex;
-  height: 100%;
-}
-
-.main {
+.page {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  padding: 2rem;
   gap: 2rem;
 }
 
@@ -22,12 +15,7 @@
 }
 
 @media (max-width: 640px) {
-  .root {
-    flex-direction: column;
-  }
-
-  .main {
-    padding: 1rem;
+  .page {
     gap: 0;
     overflow: hidden;
   }
