@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { TrackingTimeSummary } from '../types';
 import { useTheme } from '../context/theme';
 import { capitalize } from '../utils/text';
@@ -64,9 +65,13 @@ function fmtDuration(s: number): string {
 
 interface Props {
   summary: TrackingTimeSummary;
+  /** Caps how many legend rows render before collapsing the rest behind a "read more" link — omit for no limit. */
+  legendLimit?: number;
+  /** Where the "read more" link goes, once a limit is set and exceeded. */
+  moreHref?: string;
 }
 
-export default function PieChart({ summary }: Props) {
+export default function PieChart({ summary, legendLimit, moreHref }: Props) {
   const { theme } = useTheme();
   const palette = theme === 'tui' ? TUI_COLORS : DEFAULT_COLORS;
   const { breakdown, total_seconds } = summary;
@@ -136,7 +141,7 @@ export default function PieChart({ summary }: Props) {
 
       {!isEmpty && (
         <ul className={styles.legend}>
-          {segments.map((seg, i) => (
+          {(legendLimit ? segments.slice(0, legendLimit) : segments).map((seg, i) => (
             <li key={i} className={styles.legendItem}>
               <span className={styles.dot} style={{ background: seg.color }} />
               <span className={styles.legendName}>{seg.label}</span>
@@ -144,6 +149,13 @@ export default function PieChart({ summary }: Props) {
               <span className={styles.legendPct}>{seg.pct}%</span>
             </li>
           ))}
+          {legendLimit && moreHref && segments.length > legendLimit && (
+            <li className={styles.legendMoreRow}>
+              <Link to={moreHref} className={styles.legendMore}>
+                Read more (+{segments.length - legendLimit})
+              </Link>
+            </li>
+          )}
         </ul>
       )}
     </div>

@@ -13,6 +13,7 @@ import AppLayout from './layouts/AppLayout';
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const SessionsPage = lazy(() => import('./pages/SessionsPage'));
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const SummaryPage = lazy(() => import('./pages/SummaryPage'));
 
 /**
  * Drains the offline write queue on initial load (if already reachable) and
@@ -45,6 +46,7 @@ export default function App() {
             <Route element={<TimerProvider><AppLayout /></TimerProvider>}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/sessions" element={<SessionsPage />} />
+              <Route path="/sessions/summary/:period" element={<SummaryPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/login" replace />} />

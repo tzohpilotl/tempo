@@ -89,3 +89,20 @@
   min-width: 34px;
   text-align: right;
 }
+
+.legendMoreRow {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.125rem;
+}
+
+.legendMore {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  transition: color 0.12s var(--ease);
+}
+
+.legendMore:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}

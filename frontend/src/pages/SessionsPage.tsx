@@ -5,9 +5,11 @@ import PieChart from '../components/PieChart';
 import type { Project, TrackingEvent, TrackingSummaryResponse } from '../types';
 import { logError } from '../utils/logger';
 import { getDayRange, getWeekRange, getMonthRange } from '../utils/dateRange';
+import { TRACKING_PERIODS } from '../utils/trackingPeriods';
 import styles from './SessionsPage.module.css';
 
 const PAGE_SIZE = 20;
+const LEGEND_LIMIT = 3;
 
 const EMPTY_TIME_SUMMARY = { breakdown: [], total_seconds: 0 };
 const EMPTY_SUMMARIES: TrackingSummaryResponse = {
@@ -16,13 +18,6 @@ const EMPTY_SUMMARIES: TrackingSummaryResponse = {
   week: EMPTY_TIME_SUMMARY,
   month: EMPTY_TIME_SUMMARY,
 };
-
-const CHART_LABELS: Array<{ key: keyof TrackingSummaryResponse; label: string }> = [
-  { key: 'day', label: 'Today' },
-  { key: 'week', label: 'This week' },
-  { key: 'month', label: 'This month' },
-  { key: 'allTime', label: 'All time' },
-];
 
 const fetchSummary = () =>
   trackingApi.summary({ day: getDayRange(), week: getWeekRange(), month: getMonthRange() });
@@ -126,13 +121,17 @@ export default function SessionsPage() {
 
         {/* ── Pie charts — main focus of the page ── */}
         <section className={styles.chartSection}>
-          {CHART_LABELS.map(({ key, label }) => (
+          {TRACKING_PERIODS.map(({ key, label }) => (
             <div key={key} className={styles.chartCard}>
               <h2 className={styles.chartCardTitle}>{label}</h2>
               {chartLoading ? (
                 <div className={styles.chartPlaceholder} />
               ) : (
-                <PieChart summary={summaries[key]} />
+                <PieChart
+                  summary={summaries[key]}
+                  legendLimit={LEGEND_LIMIT}
+                  moreHref={`/sessions/summary/${key}`}
+                />
               )}
             </div>
           ))}
