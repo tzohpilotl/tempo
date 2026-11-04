@@ -127,13 +127,21 @@ You need a Google OAuth 2.0 client before the app can authenticate users.
 
 ### 1. Clone and install
 
+`frontend/theme` is a git submodule (the design tokens + shared component
+styles, maintained in [tempo-theme](https://github.com/tzohpilotl/tempo-theme)
+so it can also be consumed elsewhere, e.g. via jsDelivr) — clone with
+`--recurse-submodules`, or it'll check out as an empty directory and the
+frontend build will fail looking for it.
+
 ```bash
-git clone <repo-url>
+git clone --recurse-submodules <repo-url>
 cd time-tracker
 npm install          # installs root workspace deps
 cd backend && npm install
 cd ../frontend && npm install
 ```
+
+Already cloned without it? Run `git submodule update --init` to fill it in.
 
 ### 2. Configure environment
 
