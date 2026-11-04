@@ -221,17 +221,17 @@ export default function EventLog({
                                   <div className={styles.editActions}>
                                       <button
                                           type="button"
-                                          className={styles.deleteBtn}
+                                          className="btn btn-danger"
                                           onClick={() => handleDelete(event.tracking_event_id)}
                                           disabled={saving}
                                       >
                                           Delete
                                       </button>
                                       <div className={styles.editActionsRight}>
-                                          <button type="button" className={styles.cancelBtn} onClick={cancelEdit} disabled={saving}>
+                                          <button type="button" className="btn btn-secondary" onClick={cancelEdit} disabled={saving}>
                                               Cancel
                                           </button>
-                                          <button type="submit" className={styles.saveBtn} disabled={saving}>
+                                          <button type="submit" className="btn btn-primary" disabled={saving}>
                                               {saving ? 'Saving…' : 'Save'}
                                           </button>
                                       </div>
@@ -266,19 +266,19 @@ export default function EventLog({
                               <div className={styles.meta}>
                                   {pendingIds?.has(event.tracking_event_id) && (
                                       <>
-                                          <span className={styles.pendingBadge}>Not synced</span>
+                                          <span className="pill pill-neutral">Not synced</span>
                                           <span className={styles.metaDot}>·</span>
                                       </>
                                   )}
                                   {event.project && (
                                       <>
-                                          <span className={styles.projectTag}>{capitalize(event.project.name)}</span>
+                                          <span className="pill pill-accent">{capitalize(event.project.name)}</span>
                                           <span className={styles.metaDot}>·</span>
                                       </>
                                   )}
                                   {event.paused_seconds > 0 && (
                                       <>
-                                          <span className={styles.pendingBadge} title="Time spent paused is excluded from the duration shown">
+                                          <span className="pill pill-neutral" title="Time spent paused is excluded from the duration shown">
                                               Paused {formatDuration(event.paused_seconds)}
                                           </span>
                                           <span className={styles.metaDot}>·</span>

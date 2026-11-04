@@ -14,6 +14,12 @@ export default defineConfig({
   },
   plugins: [react()],
   server: {
+    // global.css imports ../../theme/{tokens,components}.css — a sibling
+    // package outside this Vite root, so the dev server's default
+    // same-root file access needs widening to reach it.
+    fs: {
+      allow: ['..'],
+    },
     proxy: {
       '/api': {
         target: `http://localhost:${backendPort}`,

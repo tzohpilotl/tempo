@@ -113,7 +113,7 @@ export default function ProjectsPage() {
             disabled={!online || creating}
           />
           <button
-            className={styles.saveBtn}
+            className="btn btn-primary"
             onClick={createProject}
             disabled={!online || creating}
           >
@@ -133,7 +133,7 @@ export default function ProjectsPage() {
         ) : (
           <ul className={styles.list}>
             {stats.map((p) => (
-              <li key={p.project_id} className={styles.card}>
+              <li key={p.project_id} className="surface-row">
                 <div className={styles.cardMain}>
                   {editingId === p.project_id ? (
                     <div className={styles.editRow}>
@@ -149,13 +149,13 @@ export default function ProjectsPage() {
                         maxLength={100}
                       />
                       <button
-                        className={styles.saveBtn}
+                        className="btn btn-primary"
                         onClick={() => saveEdit(p.project_id)}
                         disabled={savingId === p.project_id}
                       >
                         {savingId === p.project_id ? '…' : 'Save'}
                       </button>
-                      <button className={styles.cancelBtn} onClick={cancelEdit}>
+                      <button className="btn btn-secondary" onClick={cancelEdit}>
                         Cancel
                       </button>
                       {editError && <span className={styles.editErrorMsg}>{editError}</span>}
@@ -174,14 +174,14 @@ export default function ProjectsPage() {
                 {editingId !== p.project_id && (
                   <div className={styles.actions}>
                     <button
-                      className={styles.editBtn}
+                      className="btn-icon"
                       onClick={() => startEdit(p)}
                       title="Rename project"
                     >
                       <PencilIcon />
                     </button>
                     <button
-                      className={styles.deleteBtn}
+                      className="btn-icon btn-icon--danger"
                       onClick={() => setDeletingId(p.project_id)}
                       title="Delete project"
                     >
@@ -207,11 +207,11 @@ export default function ProjectsPage() {
                 to this project will remain but become unassigned.
               </p>
               <div className={styles.dialogActions}>
-                <button className={styles.dialogCancel} onClick={() => setDeletingId(null)}>
+                <button className="btn btn-secondary" onClick={() => setDeletingId(null)}>
                   Cancel
                 </button>
                 <button
-                  className={styles.dialogConfirm}
+                  className="btn btn-danger-solid"
                   onClick={() => confirmDelete(deletingId)}
                 >
                   Delete

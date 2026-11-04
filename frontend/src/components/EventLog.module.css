@@ -94,25 +94,6 @@
   font-size: 0.74rem;
 }
 
-.projectTag {
-  background: var(--accent-dim);
-  color: var(--accent);
-  padding: 0.1rem 0.45rem;
-  border-radius: 99px;
-  font-weight: 600;
-  font-size: 0.7rem;
-  letter-spacing: 0.01em;
-}
-
-.pendingBadge {
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  padding: 0.1rem 0.45rem;
-  border-radius: 99px;
-  font-weight: 600;
-  font-size: 0.7rem;
-}
-
 .metaDot {
   color: var(--text-faint);
 }
@@ -191,42 +172,3 @@
   gap: 0.5rem;
 }
 
-.deleteBtn,
-.cancelBtn,
-.saveBtn {
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.35rem 0.8rem;
-  border-radius: var(--radius-sm, 4px);
-  cursor: pointer;
-}
-
-.deleteBtn {
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--danger);
-}
-
-.deleteBtn:hover {
-  background: rgba(196, 52, 40, 0.08);
-}
-
-.cancelBtn {
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-}
-
-.saveBtn {
-  border: none;
-  background: var(--accent);
-  color: var(--btn-accent-fg);
-}
-
-.saveBtn:disabled,
-.cancelBtn:disabled,
-.deleteBtn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}

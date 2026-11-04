@@ -51,12 +51,12 @@ export default function Sidebar({ user }: Props) {
           <div className={styles.avatar}>
             {user.display_name.charAt(0).toUpperCase()}
           </div>
-          <button className={styles.themeBtn} onClick={toggleTheme} title={themeTitle}>
+          <button className={`btn-icon ${styles.actionBtn}`} onClick={toggleTheme} title={themeTitle}>
             {themeIcon}
           </button>
           {pushSupported && (
             <button
-              className={styles.themeBtn}
+              className={`btn-icon ${styles.actionBtn}`}
               onClick={togglePush}
               disabled={pushLoading}
               title={pushTitle}
@@ -65,7 +65,7 @@ export default function Sidebar({ user }: Props) {
             </button>
           )}
           <button
-            className={styles.logoutBtn}
+            className={`btn-icon btn-icon--danger ${styles.actionBtn}`}
             onClick={handleLogout}
             title="Sign out"
           >
@@ -111,12 +111,12 @@ export default function Sidebar({ user }: Props) {
           </div>
         </div>
         <div className={styles.footerActions}>
-          <button className={styles.themeBtn} onClick={toggleTheme} title={themeTitle}>
+          <button className={`btn-icon ${styles.actionBtn}`} onClick={toggleTheme} title={themeTitle}>
             {themeIcon}
           </button>
           {pushSupported && (
             <button
-              className={styles.themeBtn}
+              className={`btn-icon ${styles.actionBtn}`}
               onClick={togglePush}
               disabled={pushLoading}
               title={pushTitle}
@@ -125,7 +125,7 @@ export default function Sidebar({ user }: Props) {
             </button>
           )}
           <button
-            className={styles.logoutBtn}
+            className={`btn-icon btn-icon--danger ${styles.actionBtn}`}
             onClick={handleLogout}
             title="Sign out"
           >

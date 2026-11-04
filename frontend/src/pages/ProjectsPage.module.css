@@ -65,21 +65,6 @@
   gap: 2px;
 }
 
-.card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  transition: background 0.12s var(--ease);
-}
-
-.card:hover {
-  background: var(--bg-raised);
-}
-
 .cardMain {
   display: flex;
   flex-direction: column;
@@ -134,30 +119,8 @@
   transition: opacity 0.15s var(--ease);
 }
 
-.card:hover .actions {
+:global(.surface-row):hover .actions {
   opacity: 1;
-}
-
-.editBtn,
-.deleteBtn {
-  padding: 0.375rem;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-faint);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.12s var(--ease), background 0.12s var(--ease);
-}
-
-.editBtn:hover {
-  color: var(--accent);
-  background: var(--accent-dim);
-}
-
-.deleteBtn:hover {
-  color: var(--danger);
-  background: rgba(196, 52, 40, 0.08);
 }
 
 /* ── Inline edit ─────────────────────────────────────────────────────────────── */
@@ -188,36 +151,6 @@
 
 .editInputError {
   border-color: var(--danger);
-}
-
-.saveBtn {
-  padding: 0.3rem 0.75rem;
-  font-size: 0.8rem;
-  background: var(--accent);
-  color: var(--btn-accent-fg);
-  border: none;
-  border-radius: var(--radius);
-  font-weight: 600;
-  transition: opacity 0.12s var(--ease);
-}
-
-.saveBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.cancelBtn {
-  padding: 0.3rem 0.75rem;
-  font-size: 0.8rem;
-  background: var(--bg-raised);
-  color: var(--text-muted);
-  border-radius: var(--radius);
-  transition: color 0.12s var(--ease), background 0.12s var(--ease);
-}
-
-.cancelBtn:hover {
-  color: var(--text);
-  background: var(--bg);
 }
 
 .editErrorMsg {
@@ -299,35 +232,6 @@
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 0.25rem;
-}
-
-.dialogCancel {
-  padding: 0.4rem 0.9rem;
-  font-size: 0.85rem;
-  background: var(--bg-raised);
-  color: var(--text-muted);
-  border-radius: var(--radius);
-  transition: color 0.12s var(--ease), background 0.12s var(--ease);
-}
-
-.dialogCancel:hover {
-  color: var(--text);
-  background: var(--bg);
-}
-
-.dialogConfirm {
-  padding: 0.4rem 0.9rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  background: var(--danger);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius);
-  transition: opacity 0.12s var(--ease);
-}
-
-.dialogConfirm:hover {
-  opacity: 0.85;
 }
 
 @media (max-width: 640px) {

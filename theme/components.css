@@ -1,0 +1,149 @@
+/*
+ * Tempo reusable component patterns, built on tokens.css's variables.
+ * Load tokens.css first — these rules assume --bg/--text/--accent/etc. exist.
+ *
+ * Generalized from patterns that were duplicated across the Tempo React app
+ * (EventLog, ProjectsPage, Sidebar, Timer) with Tempo-specific class names
+ * (.saveBtn, .cancelBtn, .dialogConfirm, .card, .item, .pendingBadge, ...).
+ * These are the same visual patterns under framework-agnostic names, so a
+ * non-React app can reuse the look without reusing any component code.
+ *
+ * Note on fidelity: the source app wasn't fully self-consistent — e.g.
+ * EventLog's cancel button was outlined while ProjectsPage's was filled with
+ * --bg-raised for the same role. .btn-secondary below picks the filled style
+ * (it was the more common of the two) as the one canonical version; adjust
+ * if your app wants the outlined look instead.
+ */
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.12s var(--ease), background 0.12s var(--ease), opacity 0.12s var(--ease);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  border: none;
+  background: var(--accent);
+  color: var(--btn-accent-fg);
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  border: none;
+  background: var(--bg-raised);
+  color: var(--text-muted);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.btn-danger {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(196, 52, 40, 0.08);
+}
+
+/* Filled variant — for a destructive action that's the primary action of its
+   own context (e.g. a delete-confirmation dialog), rather than a secondary
+   option alongside save/cancel. */
+.btn-danger-solid {
+  border: none;
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+/* Small square icon-only button — theme toggle, edit/delete glyphs, etc. */
+.btn-icon {
+  padding: 0.375rem;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-faint);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s var(--ease), background 0.12s var(--ease);
+}
+
+.btn-icon:hover {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.btn-icon--danger:hover {
+  color: var(--danger);
+  background: rgba(196, 52, 40, 0.08);
+}
+
+/* ── Pills / badges ────────────────────────────────────────────────────────── */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.01em;
+}
+
+/* Neutral — "not synced", status labels with no inherent color meaning. */
+.pill-neutral {
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* Accent — tags that represent a user-chosen category (e.g. a project name). */
+.pill-accent {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* ── Surface row / card ────────────────────────────────────────────────────── */
+
+/* A clickable or hoverable row/card sitting one step up the surface ladder
+   (bg → bg-surface → bg-raised) from its container. Used for list items
+   and cards alike — the only real difference between them in the source
+   app was padding and border-radius, both overridable per use. */
+.surface-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  transition: background 0.12s var(--ease);
+}
+
+.surface-row:hover {
+  background: var(--bg-raised);
+}
